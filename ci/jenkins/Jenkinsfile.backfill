@@ -1,0 +1,147 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'BACKFILL_START', defaultValue: '',
+                description: 'Tehran time, full hour; example: 2026-09-22T21:00')
+        string(name: 'BACKFILL_END', defaultValue: '',
+                description: 'Tehran time, exclusive full hour; example: 2026-09-22T22:00')
+    }
+
+    options {
+        timeout(time: 2, unit: 'HOURS')
+        disableConcurrentBuilds()
+    }
+
+    environment {
+        HELM_CHART = 'helm-chart/charts/starrocks-writer'
+        HELM_NAMESPACE = 'default'
+        STARROCKS_DEPLOYMENT = 'starrocks-writer'
+    }
+
+    stages {
+        stage('Validate Input') {
+            steps {
+                script {
+                    def start = params.BACKFILL_START.trim()
+                    def end = params.BACKFILL_END.trim()
+                    def fullHour = /^\d{4}-\d{2}-\d{2}T\d{2}:00$/
+
+                    if (!(start ==~ fullHour) || !(end ==~ fullHour)) {
+                        error('Times must be full Tehran hours, for example 2026-09-22T21:00')
+                    }
+                    if (start >= end) {
+                        error('BACKFILL_START must be before BACKFILL_END')
+                    }
+
+                    env.BACKFILL_START_VALUE = start
+                    env.BACKFILL_END_VALUE = end
+                    env.BACKFILL_RUN_ID = "b${env.BUILD_NUMBER}"
+                    env.BACKFILL_JOB_NAME = "starrocks-writer-backfill-${env.BACKFILL_RUN_ID}"
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} ${start} -> ${end}"
+                }
+
+                sh '''
+                    set -e
+                    command -v helm >/dev/null
+                    command -v kubectl >/dev/null
+                    kubectl auth can-i get deployments --namespace "${HELM_NAMESPACE}" | grep -qx yes
+                    kubectl auth can-i create jobs.batch --namespace "${HELM_NAMESPACE}" | grep -qx yes
+                '''
+            }
+        }
+
+        stage('Resolve Deployed Image') {
+            steps {
+                script {
+                    env.BACKFILL_IMAGE = sh(
+                        script: '''
+                            kubectl get deployment "${STARROCKS_DEPLOYMENT}" \
+                                --namespace "${HELM_NAMESPACE}" \
+                                -o jsonpath='{.spec.template.spec.containers[0].image}'
+                        ''',
+                        returnStdout: true
+                    ).trim()
+
+                    if (!env.BACKFILL_IMAGE) {
+                        error('Could not find the deployed StarRocks Writer image')
+                    }
+                    echo "Backfill will use deployed image: ${env.BACKFILL_IMAGE}"
+                }
+            }
+        }
+
+        stage('Create Backfill Job') {
+            steps {
+                sh '''
+                    set -e
+                    helm template netflow-backfill "./${HELM_CHART}" \
+                        --namespace "${HELM_NAMESPACE}" \
+                        --show-only templates/backfill-job.yaml \
+                        --set-string fullnameOverride=starrocks-writer \
+                        --set backfill.enabled=true \
+                        --set-string backfill.image="${BACKFILL_IMAGE}" \
+                        --set-string backfill.start="${BACKFILL_START_VALUE}" \
+                        --set-string backfill.end="${BACKFILL_END_VALUE}" \
+                        --set-string backfill.runId="${BACKFILL_RUN_ID}" \
+                        > backfill-job.yaml
+
+                    kubectl create \
+                        --namespace "${HELM_NAMESPACE}" \
+                        --filename backfill-job.yaml
+                '''
+            }
+        }
+
+        stage('Wait and Show Result') {
+            steps {
+                sh '''
+                    set +e
+                    result=1
+
+                    for attempt in $(seq 1 1080); do
+                        succeeded=$(kubectl get job "${BACKFILL_JOB_NAME}" \
+                            --namespace "${HELM_NAMESPACE}" \
+                            -o jsonpath='{.status.succeeded}' 2>/dev/null)
+                        failed=$(kubectl get job "${BACKFILL_JOB_NAME}" \
+                            --namespace "${HELM_NAMESPACE}" \
+                            -o jsonpath='{.status.failed}' 2>/dev/null)
+
+                        if [ "${succeeded}" = "1" ]; then
+                            result=0
+                            break
+                        fi
+                        if [ -n "${failed}" ] && [ "${failed}" != "0" ]; then
+                            break
+                        fi
+                        if [ $((attempt % 12)) -eq 0 ]; then
+                            kubectl get job,pod \
+                                --namespace "${HELM_NAMESPACE}" \
+                                --selector "job-name=${BACKFILL_JOB_NAME}"
+                        fi
+                        sleep 5
+                    done
+
+                    echo '----- Backfill application log -----'
+                    kubectl logs "job/${BACKFILL_JOB_NAME}" \
+                        --namespace "${HELM_NAMESPACE}" \
+                        --all-containers=true || true
+
+                    if [ "${result}" -ne 0 ]; then
+                        echo '----- Kubernetes diagnostics -----'
+                        kubectl describe job "${BACKFILL_JOB_NAME}" \
+                            --namespace "${HELM_NAMESPACE}" || true
+                    fi
+
+                    exit "${result}"
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'backfill-job.yaml', allowEmptyArchive: true
+        }
+    }
+}

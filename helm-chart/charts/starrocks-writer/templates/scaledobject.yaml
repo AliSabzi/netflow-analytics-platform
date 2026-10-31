@@ -1,0 +1,16 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "starrocks-writer.fullname" . }}
+spec:
+  scaleTargetRef:
+    name: {{ include "starrocks-writer.fullname" . }}
+  minReplicaCount: {{ .Values.autoscaling.minReplicas }}
+  maxReplicaCount: {{ .Values.autoscaling.maxReplicas }}
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: {{ .Values.global.kafka.bootstrapServers | quote }}
+        consumerGroup: {{ .Values.env.kafkaConsumerGroup | quote }}
+        topic: {{ .Values.env.kafkaSourceTopic | quote }}
+        lagThreshold: {{ .Values.autoscaling.lagThreshold | quote }}

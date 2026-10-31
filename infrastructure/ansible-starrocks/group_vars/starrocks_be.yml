@@ -1,0 +1,7 @@
+---
+be_heartbeat_port: 9050
+be_port: 9060
+be_http_port: 8040
+be_brpc_port: 8060
+
+be_mem_limit: "4G"

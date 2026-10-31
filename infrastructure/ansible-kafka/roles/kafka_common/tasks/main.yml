@@ -1,0 +1,74 @@
+---
+- name: Ensure Kafka archive tools are installed
+  ansible.builtin.package:
+    name:
+      - tar
+      - gzip
+    state: present
+
+- name: Ensure Kafka group exists
+  ansible.builtin.group:
+    name: "{{ kafka_group }}"
+    system: true
+    state: present
+
+- name: Ensure Kafka user exists
+  ansible.builtin.user:
+    name: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+    shell: /usr/sbin/nologin
+    system: true
+    create_home: false
+    state: present
+
+- name: Ensure Kafka directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ kafka_download_dir }}"
+    - "{{ kafka_install_root }}"
+    - "{{ jmx_exporter_install_dir }}"
+
+- name: Download JMX Exporter from store
+  ansible.builtin.get_url:
+    url: "{{ jmx_exporter_download_url }}"
+    dest: "{{ jmx_exporter_jar_path }}"
+    checksum: "{{ jmx_exporter_checksum | default(omit, true) }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Download Kafka from store
+  ansible.builtin.get_url:
+    url: "{{ kafka_download_url }}"
+    dest: "{{ kafka_archive_path }}"
+    checksum: "{{ kafka_checksum }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Extract Kafka
+  ansible.builtin.unarchive:
+    src: "{{ kafka_archive_path }}"
+    dest: "{{ kafka_install_root }}"
+    remote_src: true
+    creates: "{{ kafka_version_dir }}/bin/kafka-server-start.sh"
+    owner: root
+    group: root
+
+- name: Point Kafka current symlink to installed version
+  ansible.builtin.file:
+    src: "{{ kafka_version_dir }}"
+    dest: "{{ kafka_home }}"
+    state: link
+    force: true
+
+- name: Verify installed Kafka
+  ansible.builtin.command: "{{ kafka_home }}/bin/kafka-topics.sh --version"
+  environment:
+    JAVA_HOME: "{{ java_home }}"
+  changed_when: false

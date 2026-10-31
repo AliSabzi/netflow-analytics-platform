@@ -1,0 +1,7 @@
+---
+- name: Restart Kafka broker
+  ansible.builtin.systemd:
+    name: "{{ kafka_broker_service_name }}"
+    state: restarted
+    enabled: true
+    daemon_reload: true

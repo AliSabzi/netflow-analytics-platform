@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "spark-analyzer.fullname" . }}
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        metadata:
+          labels:
+            app: {{ include "spark-analyzer.fullname" . }}
+          annotations:
+            checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: spark-analyzer
+              image: "{{ .Values.global.registry }}/{{ .Values.image.repository }}:{{ .Values.global.imageTag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              envFrom:
+                - configMapRef:
+                    name: {{ include "spark-analyzer.fullname" . }}-config
+              env:
+                - name: SPARK_DRIVER_HOST
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: status.podIP
+
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "spark-analyzer.postgresqlSecretName" . }}
+                      key: postgres-password
+
+              volumeMounts:
+                - name: hadoop-config
+                  mountPath: /app/resources/core-site.xml
+                  subPath: core-site.xml
+                  readOnly: true
+
+                - name: hadoop-config
+                  mountPath: /app/resources/hdfs-site.xml
+                  subPath: hdfs-site.xml
+                  readOnly: true
+
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+
+          volumes:
+            - name: hadoop-config
+              configMap:
+                name: hadoop-config

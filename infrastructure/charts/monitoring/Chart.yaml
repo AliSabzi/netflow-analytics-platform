@@ -1,0 +1,6 @@
+apiVersion: v2
+name: netflow-monitoring
+description: Prometheus and Grafana monitoring for the NetFlow pipeline
+type: application
+version: 1.0.0
+

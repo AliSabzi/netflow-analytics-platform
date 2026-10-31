@@ -1,0 +1,6 @@
+apiVersion: v2
+name: hdfs-writer
+description: Helm chart for the HDFS writer
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

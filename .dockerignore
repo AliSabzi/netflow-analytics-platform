@@ -1,0 +1,16 @@
+.git
+.idea
+.vscode
+**/target
+**/*.iml
+.env
+.env.*
+.local
+**/inventory/hosts.ini
+**/values-local*.yaml
+**/values-local*.yml
+**/*.pem
+**/*.key
+**/*.log
+**/*.zip
+**/*.parquet

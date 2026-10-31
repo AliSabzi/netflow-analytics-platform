@@ -1,0 +1,29 @@
+---
+- name: Create artifact directory on cluster nodes
+  file:
+    path: "{{ artifact_remote_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: Download artifacts directly on cluster nodes
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ artifact_remote_dir }}/{{ item.name }}"
+    owner: root
+    group: root
+    mode: '0644'
+    force: false
+    timeout: 60
+  loop:
+    - name: "{{ starrocks_package_name }}"
+      url: "{{ starrocks_package_url }}"
+    - name: "{{ java_package_name }}"
+      url: "{{ java_package_url }}"
+  register: artifact_download
+  retries: 3
+  delay: 5
+  until: artifact_download is succeeded
+  become: true

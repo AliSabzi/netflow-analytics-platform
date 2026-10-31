@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: hdfs-writer-service
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+      group-id: ${KAFKA_GROUP_ID:netflow-hdfs-writer-group}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+      max-poll-records: 50000
+      properties:
+        max.partition.fetch.bytes: 104857600
+        max.poll.interval.ms: 600000
+    listener:
+      type: batch
+      ack-mode: manual
+    admin:
+      fail-fast: true
+
+app:
+  kafka:
+    topic: ${KAFKA_TOPIC:netflow}
+    dlq-topic: ${KAFKA_DLQ_TOPIC:netflow-dlq}
+    dlq-partitions: ${KAFKA_DLQ_PARTITIONS:3}
+    dlq-replication-factor: ${KAFKA_DLQ_REPLICATION_FACTOR:3}
+    late-topic: ${KAFKA_LATE_TOPIC:netflow-late}
+    late-consumer-group: ${KAFKA_LATE_CONSUMER_GROUP:netflow-hdfs-late-writer-group}
+    late-topic-partitions: ${KAFKA_LATE_TOPIC_PARTITIONS:24}
+    late-topic-replication-factor: ${KAFKA_LATE_TOPIC_REPLICATION_FACTOR:3}
+    watermark-topic: ${KAFKA_WATERMARK_TOPIC:netflow-watermarks}
+    watermark-topic-partitions: ${KAFKA_WATERMARK_TOPIC_PARTITIONS:1}
+    watermark-topic-replication-factor: ${KAFKA_WATERMARK_TOPIC_REPLICATION_FACTOR:3}
+  hdfs:
+    output-path: ${HDFS_OUTPUT_PATH:/data/netflow/}
+    flush-threshold-records: ${HDFS_FLUSH_THRESHOLD_RECORDS:3200000}
+    flush-threshold-seconds: ${HDFS_FLUSH_THRESHOLD_SECONDS:5000}
+    allowed-lateness-minutes: ${HDFS_ALLOWED_LATENESS_MINUTES:60}
+  schema-registry:
+    url: ${SCHEMA_REGISTRY_URL:http://schema-registry-svc:8081}

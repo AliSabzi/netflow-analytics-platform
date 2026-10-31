@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: spark-worker
+  namespace: {{ .Values.namespace }}
+
+spec:
+  selector:
+    matchLabels:
+      app: spark-worker
+
+  template:
+    metadata:
+      labels:
+        app: spark-worker
+    spec:
+      containers:
+        - name: spark-worker
+          image: {{ .Values.spark.image }}
+          imagePullPolicy: IfNotPresent
+
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+            - name: SPARK_DAEMON_JAVA_OPTS
+              value: >-
+                -Dsun.net.inetaddr.ttl=5
+                -Dspark.ui.reverseProxy=true
+                -Dspark.metrics.conf.*.sink.prometheusServlet.class=org.apache.spark.metrics.sink.PrometheusServlet
+                -Dspark.metrics.conf.*.sink.prometheusServlet.path=/metrics/prometheus
+
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              exec /opt/spark/bin/spark-class \
+                org.apache.spark.deploy.worker.Worker \
+                --host "$POD_IP" \
+                --cores {{ .Values.worker.cores }} \
+                --memory {{ .Values.worker.memory }} \
+                spark://spark-master.{{ .Values.namespace }}.svc.cluster.local:7077
+
+          ports:
+            - name: web-ui
+              containerPort: 8081
+
+          resources:
+            requests:
+              cpu: {{ .Values.worker.resources.requests.cpu }}
+              memory: {{ .Values.worker.resources.requests.memory }}
+
+            limits:
+              cpu: {{ .Values.worker.resources.limits.cpu }}
+              memory: {{ .Values.worker.resources.limits.memory }}

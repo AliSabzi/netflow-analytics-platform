@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "starrocks-writer.fullname" . }}
+  labels:
+    app: starrocks-writer
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: starrocks-writer
+  template:
+    metadata:
+      labels:
+        app: starrocks-writer
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: starrocks-writer
+      containers:
+        - name: starrocks-writer
+          image: "{{ .Values.global.registry }}/{{ .Values.image.repository }}:{{ .Values.global.imageTag }}"
+          args: ["/app/resources/application.properties"]
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: {{ include "starrocks-writer.fullname" . }}-config
+          env:
+            - name: STARROCKS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "starrocks-writer.secretName" . }}
+                  key: starrocks-password
+          ports:
+            - containerPort: {{ .Values.env.metricsPort }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

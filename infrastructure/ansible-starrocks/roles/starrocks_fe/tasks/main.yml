@@ -1,0 +1,71 @@
+---
+- name: Deploy fe.conf
+  template:
+    src: fe.conf.j2
+    dest: "{{ sr_current_dir }}/fe/conf/fe.conf"
+    owner: "{{ sr_user }}"
+    group: "{{ sr_group }}"
+  become: true
+  notify: restart fe
+
+- name: Deploy starrocks-fe systemd service
+  template:
+    src: starrocks-fe.service.j2
+    dest: /etc/systemd/system/starrocks-fe.service
+    mode: '0644'
+  become: true
+  notify:
+    - reload systemd
+    - restart fe
+
+- name: Get list of registered frontends
+  command: >
+    mysql -h {{ master_fe_ip }} -P {{ fe_query_port }} -u root -N -e "SHOW PROC '/frontends';"
+  register: registered_frontends
+  delegate_to: "{{ master_fe_ip }}"
+  changed_when: false
+  when: inventory_hostname in groups['fe_followers']
+
+- name: Register FE followers to Master
+  command: >
+    mysql -h {{ master_fe_ip }} -P {{ fe_query_port }} -u root -e
+    "ALTER SYSTEM ADD FOLLOWER '{{ inventory_hostname }}:{{ fe_edit_log_port }}';"
+  delegate_to: "{{ master_fe_ip }}"
+  when:
+    - inventory_hostname in groups['fe_followers']
+    - inventory_hostname not in registered_frontends.stdout
+
+- name: Apply pending FE service changes
+  meta: flush_handlers
+
+- name: Start and enable Master FE
+  systemd:
+    name: starrocks-fe
+    state: started
+    enabled: true
+  become: true
+  when: inventory_hostname in groups['fe_master']
+
+- name: Wait for Master FE MySQL port to be open
+  wait_for:
+    host: "{{ master_fe_ip }}"
+    port: "{{ fe_query_port }}"
+    delay: 2
+    timeout: 60
+  when: inventory_hostname in groups['fe_master']
+
+- name: Start and enable Follower FE service
+  systemd:
+    name: starrocks-fe
+    state: started
+    enabled: true
+  become: true
+  when: inventory_hostname in groups['fe_followers']
+
+- name: Wait for Follower FE MySQL port to be open
+  wait_for:
+    host: "{{ inventory_hostname }}"
+    port: "{{ fe_query_port }}"
+    delay: 2
+    timeout: 60
+  when: inventory_hostname in groups['fe_followers']

@@ -1,0 +1,265 @@
+{
+  "type": "record",
+  "name": "NetFlowV2OutputRecord",
+  "namespace": "com.novindata.netflow.core.avro",
+  "doc": "A NetFlow v2 feature record derived from NetFlow_v2_Features.csv.",
+  "fields": [
+    {
+      "name": "IPV4_SRC_ADDR",
+      "type": "string",
+      "doc": "IPv4 source address."
+    },
+    {
+      "name": "IPV4_DST_ADDR",
+      "type": "string",
+      "doc": "IPv4 destination address."
+    },
+    {
+      "name": "L4_SRC_PORT",
+      "type": "int",
+      "doc": "Layer 4 source port number."
+    },
+    {
+      "name": "L4_DST_PORT",
+      "type": "int",
+      "doc": "Layer 4 destination port number."
+    },
+    {
+      "name": "PROTOCOL",
+      "type": "int",
+      "doc": "IP protocol identifier."
+    },
+    {
+      "name": "L7_PROTO",
+      "type": "double",
+      "doc": "Layer 7 protocol numeric identifier."
+    },
+    {
+      "name": "IN_BYTES",
+      "type": "long",
+      "doc": "Incoming byte count."
+    },
+    {
+      "name": "OUT_BYTES",
+      "type": "long",
+      "doc": "Outgoing byte count."
+    },
+    {
+      "name": "IN_PKTS",
+      "type": "long",
+      "doc": "Incoming packet count."
+    },
+    {
+      "name": "OUT_PKTS",
+      "type": "long",
+      "doc": "Outgoing packet count."
+    },
+    {
+      "name": "FLOW_DURATION_MILLISECONDS",
+      "type": "long",
+      "doc": "Flow duration in milliseconds."
+    },
+    {
+      "name": "TCP_FLAGS",
+      "type": "int",
+      "doc": "Cumulative TCP flags."
+    },
+    {
+      "name": "CLIENT_TCP_FLAGS",
+      "type": "int",
+      "doc": "Cumulative client TCP flags."
+    },
+    {
+      "name": "SERVER_TCP_FLAGS",
+      "type": "int",
+      "doc": "Cumulative server TCP flags."
+    },
+    {
+      "name": "DURATION_IN",
+      "type": "long",
+      "doc": "Client-to-server stream duration in milliseconds."
+    },
+    {
+      "name": "DURATION_OUT",
+      "type": "long",
+      "doc": "Server-to-client stream duration in milliseconds."
+    },
+    {
+      "name": "MIN_TTL",
+      "type": "int",
+      "doc": "Minimum observed flow TTL."
+    },
+    {
+      "name": "MAX_TTL",
+      "type": "int",
+      "doc": "Maximum observed flow TTL."
+    },
+    {
+      "name": "LONGEST_FLOW_PKT",
+      "type": "int",
+      "doc": "Longest flow packet size in bytes."
+    },
+    {
+      "name": "SHORTEST_FLOW_PKT",
+      "type": "int",
+      "doc": "Shortest flow packet size in bytes."
+    },
+    {
+      "name": "MIN_IP_PKT_LEN",
+      "type": "int",
+      "doc": "Smallest observed IP packet length."
+    },
+    {
+      "name": "MAX_IP_PKT_LEN",
+      "type": "int",
+      "doc": "Largest observed IP packet length."
+    },
+    {
+      "name": "SRC_TO_DST_SECOND_BYTES",
+      "type": "long",
+      "doc": "Source-to-destination bytes per second."
+    },
+    {
+      "name": "DST_TO_SRC_SECOND_BYTES",
+      "type": "long",
+      "doc": "Destination-to-source bytes per second."
+    },
+    {
+      "name": "RETRANSMITTED_IN_BYTES",
+      "type": "long",
+      "doc": "Retransmitted TCP bytes from source to destination."
+    },
+    {
+      "name": "RETRANSMITTED_IN_PKTS",
+      "type": "long",
+      "doc": "Retransmitted TCP packets from source to destination."
+    },
+    {
+      "name": "RETRANSMITTED_OUT_BYTES",
+      "type": "long",
+      "doc": "Retransmitted TCP bytes from destination to source."
+    },
+    {
+      "name": "RETRANSMITTED_OUT_PKTS",
+      "type": "long",
+      "doc": "Retransmitted TCP packets from destination to source."
+    },
+    {
+      "name": "SRC_TO_DST_AVG_THROUGHPUT",
+      "type": "long",
+      "doc": "Source-to-destination average throughput in bits per second."
+    },
+    {
+      "name": "DST_TO_SRC_AVG_THROUGHPUT",
+      "type": "long",
+      "doc": "Destination-to-source average throughput in bits per second."
+    },
+    {
+      "name": "NUM_PKTS_UP_TO_128_BYTES",
+      "type": "long",
+      "doc": "Packets with IP size up to and including 128 bytes."
+    },
+    {
+      "name": "NUM_PKTS_128_TO_256_BYTES",
+      "type": "long",
+      "doc": "Packets with IP size greater than 128 and up to 256 bytes."
+    },
+    {
+      "name": "NUM_PKTS_256_TO_512_BYTES",
+      "type": "long",
+      "doc": "Packets with IP size greater than 256 and up to 512 bytes."
+    },
+    {
+      "name": "NUM_PKTS_512_TO_1024_BYTES",
+      "type": "long",
+      "doc": "Packets with IP size greater than 512 and up to 1024 bytes."
+    },
+    {
+      "name": "NUM_PKTS_1024_TO_1514_BYTES",
+      "type": "long",
+      "doc": "Packets with IP size greater than 1024 and up to 1514 bytes."
+    },
+    {
+      "name": "TCP_WIN_MAX_IN",
+      "type": "int",
+      "doc": "Maximum TCP window from source to destination."
+    },
+    {
+      "name": "TCP_WIN_MAX_OUT",
+      "type": "int",
+      "doc": "Maximum TCP window from destination to source."
+    },
+    {
+      "name": "ICMP_TYPE",
+      "type": "int",
+      "doc": "Combined ICMP type and code: type multiplied by 256 plus code."
+    },
+    {
+      "name": "ICMP_IPV4_TYPE",
+      "type": "int",
+      "doc": "ICMPv4 type."
+    },
+    {
+      "name": "DNS_QUERY_ID",
+      "type": "int",
+      "doc": "DNS query transaction identifier."
+    },
+    {
+      "name": "DNS_QUERY_TYPE",
+      "type": "int",
+      "doc": "DNS query type, such as 1 for A or 2 for NS."
+    },
+    {
+      "name": "DNS_TTL_ANSWER",
+      "type": "long",
+      "doc": "TTL of the first DNS A record answer, if present."
+    },
+    {
+      "name": "FTP_COMMAND_RET_CODE",
+      "type": "int",
+      "doc": "FTP client command return code."
+    },
+    {
+      "name": "KAFKA_RECORD_TIMESTAMP",
+      "type": [
+        "null",
+        {
+          "type": "long",
+          "logicalType": "timestamp-millis"
+        }
+      ],
+      "default": null
+    },
+    {
+      "name": "KAFKA_TOPIC",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "KAFKA_PARTITION",
+      "type": ["null", "int"],
+      "default": null
+    },
+    {
+      "name": "KAFKA_OFFSET",
+      "type": ["null", "long"],
+      "default": null
+    },
+    {
+      "name": "KAFKA_TIMESTAMP_TYPE",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "PROCESSING_TIMESTAMP",
+      "type": [
+        "null",
+        {
+          "type": "long",
+          "logicalType": "timestamp-millis"
+        }
+      ],
+      "default": null
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+---
+- name: Validate essential Kafka cluster settings
+  ansible.builtin.assert:
+    that:
+      - groups['kafka_controllers'] | length == 3
+      - groups['kafka_brokers'] | map('extract', hostvars, 'kafka_node_id') | list | unique | length == groups['kafka_brokers'] | length
+      - groups['kafka_controllers'] | map('extract', hostvars, 'kafka_controller_directory_id') | list | unique | length == groups['kafka_controllers'] | length
+      - kafka_controller_node_id_offset > (groups['kafka_brokers'] | map('extract', hostvars, 'kafka_node_id') | map('int') | max)
+      - kafka_default_replication_factor | int <= groups['kafka_brokers'] | length
+      - kafka_min_insync_replicas | int <= kafka_default_replication_factor | int
+      - kafka_offsets_topic_replication_factor | int <= groups['kafka_brokers'] | length
+      - kafka_transaction_topic_replication_factor | int <= groups['kafka_brokers'] | length
+      - kafka_transaction_topic_min_isr | int <= kafka_transaction_topic_replication_factor | int
+    fail_msg: "Kafka controller IDs, directory IDs, controller count or replication settings are invalid"
+  run_once: true

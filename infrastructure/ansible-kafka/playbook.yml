@@ -1,0 +1,67 @@
+---
+- name: Deploy Apache Kafka Cluster (KRaft Mode)
+  hosts: kafka_cluster
+  become: true
+  gather_facts: false
+  roles:
+    - role: kafka_preflight
+      tags: preflight
+    - role: java
+    - role: kafka_common
+
+- name: Configure Kafka controllers
+  hosts: kafka_controllers
+  become: true
+  gather_facts: false
+  serial: 1
+  roles:
+    - role: kafka_controller
+
+- name: Verify Kafka controller quorum
+  hosts: kafka_controllers
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for an elected controller leader
+      ansible.builtin.command: >-
+        {{ kafka_home }}/bin/kafka-metadata-quorum.sh
+        --bootstrap-controller {{ kafka_node_address }}:{{ kafka_controller_port }}
+        describe --status
+      become_user: "{{ kafka_user }}"
+      environment:
+        JAVA_HOME: "{{ java_home }}"
+      register: kafka_controller_quorum_status
+      changed_when: false
+      until:
+        - kafka_controller_quorum_status.rc == 0
+        - "'LeaderId:' in kafka_controller_quorum_status.stdout"
+        - "'CurrentVoters:' in kafka_controller_quorum_status.stdout"
+      retries: 30
+      delay: 5
+      run_once: true
+
+- name: Configure Kafka brokers
+  hosts: kafka_brokers
+  become: true
+  gather_facts: false
+  serial: 1
+  roles:
+    - role: kafka_broker
+
+- name: Verify Kafka brokers
+  hosts: kafka_brokers
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for Kafka broker API
+      ansible.builtin.command: >-
+        {{ kafka_home }}/bin/kafka-broker-api-versions.sh
+        --bootstrap-server {{ kafka_node_address }}:{{ kafka_broker_port }}
+      become_user: "{{ kafka_user }}"
+      environment:
+        JAVA_HOME: "{{ java_home }}"
+      register: kafka_broker_api_status
+      changed_when: false
+      until: kafka_broker_api_status.rc == 0
+      retries: 30
+      delay: 5

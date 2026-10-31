@@ -1,0 +1,47 @@
+{{- if .Values.backfill.enabled }}
+{{- $start := required "backfill.start is required" .Values.backfill.start }}
+{{- $end := required "backfill.end is required" .Values.backfill.end }}
+{{- $runId := required "backfill.runId is required" .Values.backfill.runId }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ printf "%s-backfill-%s" (include "starrocks-writer.fullname" .) $runId | trunc 63 | trimSuffix "-" }}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: backfill
+          image: {{ default (printf "%s/%s:%s" .Values.global.registry .Values.image.repository .Values.global.imageTag) .Values.backfill.image | quote }}
+          imagePullPolicy: Always
+          command: ["java"]
+          args:
+            - -cp
+            - /app/resources:/app/classes:/app/libs/*
+            - com.novindata.netflow.writer.backfill.BackfillApplication
+            - --recover
+          env:
+            - name: BACKFILL_START
+              value: {{ $start | quote }}
+            - name: BACKFILL_END
+              value: {{ $end | quote }}
+            - name: HDFS_ROOT
+              value: {{ .Values.backfill.hdfsRoot | quote }}
+            - name: HADOOP_USER_NAME
+              value: hadoop
+            - name: STARROCKS_JDBC_URL
+              value: {{ printf "%s/%s" .Values.env.starrocksFeQueryUrl .Values.env.starrocksDb | quote }}
+            - name: STARROCKS_USER
+              value: {{ .Values.env.starrocksUser | quote }}
+            - name: STARROCKS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "starrocks-writer.secretName" . }}
+                  key: starrocks-password
+            - name: STARROCKS_TABLE
+              value: {{ .Values.env.starrocksTable | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+{{- end }}

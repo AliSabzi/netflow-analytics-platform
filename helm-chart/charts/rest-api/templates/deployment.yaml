@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rest-api.fullname" . }}
+  labels:
+    app: rest-api
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: rest-api
+  template:
+    metadata:
+      labels:
+        app: rest-api
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: rest-api
+          image: "{{ .Values.global.registry }}/{{ .Values.image.repository }}:{{ .Values.global.imageTag }}"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: {{ .Values.service.port }}
+            - name: metrics
+              containerPort: 9403
+          envFrom:
+            - configMapRef:
+                name: {{ include "rest-api.fullname" . }}-config
+          env:
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rest-api.secretName" . }}
+                  key: postgres-password
+            - name: STARROCKS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "rest-api.secretName" . }}
+                  key: starrocks-password

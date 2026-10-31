@@ -1,0 +1,47 @@
+---
+- name: Ensure Java archive tools are installed
+  ansible.builtin.package:
+    name:
+      - tar
+      - gzip
+    state: present
+
+- name: Ensure Java directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ kafka_download_dir }}"
+    - "{{ kafka_java_root }}"
+
+- name: Download Java from store
+  ansible.builtin.get_url:
+    url: "{{ java_download_url }}"
+    dest: "{{ java_archive_path }}"
+    checksum: "{{ java_checksum if java_checksum | length > 0 else omit }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Extract Java
+  ansible.builtin.unarchive:
+    src: "{{ java_archive_path }}"
+    dest: "{{ kafka_java_root }}"
+    remote_src: true
+    creates: "{{ java_install_dir }}/bin/java"
+    owner: root
+    group: root
+
+- name: Point Java current symlink to installed version
+  ansible.builtin.file:
+    src: "{{ java_install_dir }}"
+    dest: "{{ java_home }}"
+    state: link
+    force: true
+
+- name: Verify installed Java
+  ansible.builtin.command: "{{ java_home }}/bin/java -version"
+  changed_when: false

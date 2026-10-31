@@ -1,0 +1,26 @@
+apiVersion: v2
+name: netflow-app
+description: Umbrella chart for the NovinData NetFlow applications
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: hdfs-writer
+    version: 0.1.0
+    repository: file://charts/hdfs-writer
+  - name: starrocks-writer
+    version: 0.1.0
+    repository: file://charts/starrocks-writer
+  - name: rest-api
+    version: 0.1.0
+    repository: file://charts/rest-api
+  - name: spark-analyzer
+    version: 0.1.0
+    repository: file://charts/spark-analyzer
+  - name: behavioral-clustering
+    version: 0.1.0
+    repository: file://charts/behavioral-clustering
+  - name: schema-registry
+    version: 0.1.0
+    repository: file://charts/schema-registry

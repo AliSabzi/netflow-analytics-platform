@@ -1,0 +1,50 @@
+---
+kafka_storage_root: "/mnt/disk1"
+
+kafka_download_dir: "{{ kafka_storage_root }}/downloads"
+kafka_java_root: "{{ kafka_storage_root }}/java"
+kafka_install_root: "{{ kafka_storage_root }}/kafka"
+kafka_user: "kafka"
+kafka_group: "kafka"
+kafka_node_address: "{{ ansible_host | default(inventory_hostname) }}"
+
+kafka_version: "4.2.1"
+kafka_scala_version: "2.13"
+kafka_archive_name: "kafka_{{ kafka_scala_version }}-{{ kafka_version }}.tgz"
+kafka_download_url: "https://artifacts.example.com/netflow/{{ kafka_archive_name }}"
+kafka_archive_path: "{{ kafka_download_dir }}/{{ kafka_archive_name }}"
+kafka_version_dir: "{{ kafka_install_root }}/kafka_{{ kafka_scala_version }}-{{ kafka_version }}"
+kafka_home: "{{ kafka_install_root }}/current"
+kafka_checksum: "sha256:cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa"
+
+java_version: "17.0.6"
+java_archive_name: "jdk-{{ java_version }}_linux-x64_bin.tar.gz"
+java_download_url: "https://artifacts.example.com/netflow/java/{{ java_archive_name }}"
+java_archive_path: "{{ kafka_download_dir }}/{{ java_archive_name }}"
+java_install_dir: "{{ kafka_java_root }}/jdk-{{ java_version }}"
+java_home: "{{ kafka_java_root }}/current"
+java_checksum: ""
+
+kafka_num_partitions: 4
+kafka_default_replication_factor: 3
+kafka_min_insync_replicas: 2
+kafka_offsets_topic_replication_factor: 3
+kafka_transaction_topic_replication_factor: 3
+kafka_transaction_topic_min_isr: 2
+
+jmx_exporter_version: "0.17.2"
+jmx_exporter_install_dir: "{{ kafka_storage_root }}/jmx-exporter"
+jmx_exporter_jar_name: "jmx_prometheus_javaagent-{{ jmx_exporter_version }}.jar"
+jmx_exporter_download_url: "https://artifacts.example.com/netflow/{{ jmx_exporter_jar_name }}"
+jmx_exporter_jar_path: "{{ jmx_exporter_install_dir }}/{{ jmx_exporter_jar_name }}"
+jmx_exporter_checksum: ""
+
+kafka_cluster_id: "HnnNIYKNVSq9G6BT65ekxA"
+kafka_controller_port: 9093
+kafka_controller_node_id_offset: 1000
+kafka_controller_bootstrap_servers: >-
+  {%- set servers = [] -%}
+  {%- for host in groups['kafka_controllers'] -%}
+  {%- set _ = servers.append(host ~ ':' ~ kafka_controller_port) -%}
+  {%- endfor -%}
+  {{ servers | join(',') }}

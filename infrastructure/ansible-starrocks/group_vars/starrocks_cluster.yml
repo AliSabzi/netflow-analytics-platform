@@ -1,0 +1,17 @@
+---
+starrocks_disk_mount: "/mnt/disk1"
+sr_base_dir: "{{ starrocks_disk_mount }}/starrocks"
+sr_releases_dir: "{{ sr_base_dir }}/releases"
+sr_release_dir: "{{ sr_releases_dir }}/{{ starrocks_version }}"
+sr_current_dir: "{{ sr_base_dir }}/current"
+sr_release_marker: "{{ sr_release_dir }}/.ansible-extracted"
+sr_package_local_path: "{{ artifact_remote_dir }}/{{ starrocks_package_name }}"
+java_package_local_path: "{{ artifact_remote_dir }}/{{ java_package_name }}"
+sr_user: "starrocks"
+sr_group: "starrocks"
+
+java_install_dir: "{{ starrocks_disk_mount }}/java"
+java_home: "{{ java_install_dir }}/jdk-{{ java_version }}"
+
+master_fe_ip: "{{ groups['fe_master'][0] }}"
+fe_query_port: 9030

@@ -1,0 +1,13 @@
+---
+artifact_store_url: "https://artifacts.example.com/netflow"
+artifact_remote_dir: "{{ starrocks_disk_mount }}/starrocks/artifacts"
+
+starrocks_version: "4.1.4"
+starrocks_package_name: "StarRocks-{{ starrocks_version }}-ubuntu-amd64.tar.gz"
+starrocks_package_url: "{{ artifact_store_url }}/starrocks/{{ starrocks_package_name }}"
+
+java_version: "17.0.6"
+java_package_name: "jdk-{{ java_version }}_linux-x64_bin.tar.gz"
+java_package_url: "{{ artifact_store_url }}/java/{{ java_package_name }}"
+
+mysql_client_package: "mysql-client"

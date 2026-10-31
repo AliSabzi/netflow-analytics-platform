@@ -1,0 +1,10 @@
+meta_dir = {{ sr_base_dir }}/fe/meta
+priority_networks = {{ inventory_hostname }}/32
+JAVA_HOME = {{ java_home }}
+
+http_port = {{ fe_http_port }}
+rpc_port = {{ fe_rpc_port }}
+query_port = {{ fe_query_port }}
+edit_log_port = {{ fe_edit_log_port }}
+
+JAVA_OPTS = "{{ fe_java_heap }} -XX:+UseG1GC -Dlog4j2.formatMsgNoLookups=true"

@@ -1,0 +1,67 @@
+applicationNamespaces:
+  - default
+  - netflow-demo
+
+kubeStateMetrics:
+  image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.20.0
+
+nodeExporter:
+  image: prom/node-exporter:v1.9.1
+
+pushgateway:
+  image: prom/pushgateway:v1.11.3
+  storageClass: disk1
+
+blackbox:
+  image: prom/blackbox-exporter:v0.27.0
+  restApiPublicUrl: ""
+
+prometheus:
+  image: prom/prometheus:v3.13.0
+  replicas: 3
+  persistence:
+    size: 10Gi
+    storageClass: disk1
+
+grafana:
+  image: grafana/grafana:13.1.0
+  adminUser: admin
+  adminPassword: ""
+  anonymousEnabled: false
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: disk1
+
+kafka:
+  bootstrapServers:
+    - 192.0.2.11:9092
+    - 192.0.2.12:9092
+    - 192.0.2.13:9092
+    - 192.0.2.14:9092
+  metricsTargets:
+    - 192.0.2.11:7071
+    - 192.0.2.12:7071
+    - 192.0.2.13:7071
+    - 192.0.2.14:7071
+  controllerMetricsTargets:
+    - 192.0.2.11:7072
+    - 192.0.2.13:7072
+    - 192.0.2.14:7072
+
+hdfs:
+  metricsPath: /metrics
+  nameNodeTargets:
+    - netflow-demo-node1:18020
+    - netflow-demo-node2:18020
+    - netflow-demo-node3:18020
+  dataNodeTargets:
+    - netflow-demo-node1:19866
+    - netflow-demo-node2:19866
+    - netflow-demo-node3:19866
+    - netflow-demo-node4:19866
+
+starrocks:
+  address: 192.0.2.14:9030
+  user: root
+  password: ""

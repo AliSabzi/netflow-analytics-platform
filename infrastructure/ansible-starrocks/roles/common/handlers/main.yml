@@ -1,0 +1,7 @@
+---
+- name: Restart THP disable service
+  systemd:
+    name: disable-thp.service
+    daemon_reload: true
+    state: restarted
+  become: true

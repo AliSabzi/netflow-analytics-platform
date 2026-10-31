@@ -1,0 +1,93 @@
+---
+- name: Ensure broker directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+    mode: "0750"
+  loop: >-
+    {{ [kafka_broker_config_dir, kafka_broker_metadata_dir, kafka_broker_log_dir]
+       + kafka_broker_data_dirs }}
+
+- name: Configure Kafka broker
+  ansible.builtin.template:
+    src: server.properties.j2
+    dest: "{{ kafka_broker_config_file }}"
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+    mode: "0640"
+  notify: Restart Kafka broker
+
+- name: Configure broker JMX Exporter
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/files/kafka-jmx-exporter.yml"
+    dest: "{{ kafka_broker_jmx_exporter_config_file }}"
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+    mode: "0640"
+  notify: Restart Kafka broker
+
+- name: Check broker metadata
+  ansible.builtin.stat:
+    path: "{{ kafka_broker_metadata_dir }}/meta.properties"
+  register: kafka_broker_meta
+
+- name: Read existing broker metadata
+  ansible.builtin.slurp:
+    path: "{{ kafka_broker_metadata_dir }}/meta.properties"
+  register: kafka_broker_meta_content
+  when: kafka_broker_meta.stat.exists
+
+- name: Validate existing broker metadata
+  ansible.builtin.assert:
+    that:
+      - "('cluster.id=' ~ kafka_cluster_id) in (kafka_broker_meta_content.content | b64decode).splitlines()"
+      - "('node.id=' ~ kafka_broker_node_id) in (kafka_broker_meta_content.content | b64decode).splitlines()"
+    fail_msg: "Existing broker metadata does not match cluster.id or node.id"
+  when: kafka_broker_meta.stat.exists
+
+- name: Format broker storage
+  ansible.builtin.command: >-
+    {{ kafka_home }}/bin/kafka-storage.sh format
+    --cluster-id {{ kafka_cluster_id }}
+    --no-initial-controllers
+    --config {{ kafka_broker_config_file }}
+  become_user: "{{ kafka_user }}"
+  environment:
+    JAVA_HOME: "{{ java_home }}"
+  when: not kafka_broker_meta.stat.exists
+
+- name: Install Kafka broker service
+  ansible.builtin.template:
+    src: kafka-broker.service.j2
+    dest: "/etc/systemd/system/{{ kafka_broker_service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Kafka broker
+
+- name: Apply broker configuration changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure Kafka broker is running
+  ansible.builtin.systemd:
+    name: "{{ kafka_broker_service_name }}"
+    state: started
+    enabled: true
+
+- name: Wait for broker listener
+  ansible.builtin.wait_for:
+    host: "{{ kafka_node_address }}"
+    port: "{{ kafka_broker_port }}"
+    timeout: 120
+
+- name: Verify broker metrics endpoint
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ kafka_broker_jmx_exporter_port }}/metrics"
+    status_code: 200
+    use_proxy: false
+  register: kafka_broker_metrics
+  until: kafka_broker_metrics.status == 200
+  retries: 12
+  delay: 5

@@ -1,0 +1,70 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [{"title": "Alerting", "type": "link", "url": "/alerting/list", "icon": "bell"}],
+  "panels": [
+    {
+      "type": "stat", "title": "Spark Master", "gridPos": {"h": 4, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(up{job=\"spark-master\"}) or vector(0)", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "red"}, {"color": "green", "value": 1}]}, "color": {"mode": "thresholds"}}, "overrides": []},
+      "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"], "values": false}}
+    },
+    {
+      "type": "stat", "title": "Spark Workers", "gridPos": {"h": 4, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(up{job=\"spark-worker\"}) or vector(0)", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "min": 0}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"], "values": false}}
+    },
+    {
+      "type": "stat", "title": "Last Attempt", "gridPos": {"h": 5, "w": 24, "x": 0, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "max(netflow_spark_last_run_files_processed{job=\"spark-analyzer\"})", "legendFormat": "Files processed", "instant": true, "refId": "A"},
+        {"expr": "max(netflow_spark_last_run_records_received{job=\"spark-analyzer\"})", "legendFormat": "Records received", "instant": true, "refId": "B"},
+        {"expr": "max(netflow_spark_last_run_records_committed{job=\"spark-analyzer\"})", "legendFormat": "Records committed", "instant": true, "refId": "C"},
+        {"expr": "max(netflow_spark_last_run_errors{job=\"spark-analyzer\"})", "legendFormat": "Errors", "instant": true, "refId": "D"},
+        {"expr": "time() - max(push_time_seconds{job=\"spark-analyzer\"})", "legendFormat": "Report age (seconds)", "instant": true, "refId": "E"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "short", "min": 0, "noValue": "Unknown"}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "values": false}}
+    },
+    {
+      "type": "timeseries", "title": "Attempt Duration", "gridPos": {"h": 7, "w": 12, "x": 0, "y": 9},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "max(netflow_spark_last_run_duration_seconds{job=\"spark-analyzer\"})", "legendFormat": "Duration", "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "s", "min": 0}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "single"}}
+    },
+    {
+      "type": "stat", "title": "Worker Pod Health", "gridPos": {"h": 7, "w": 12, "x": 12, "y": 9},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(kube_pod_status_ready{namespace=\"netflow-demo\",pod=~\"spark-worker.*\",condition=\"true\"}) or vector(0)", "legendFormat": "Ready", "instant": true, "refId": "A"},
+        {"expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"netflow-demo\",pod=~\"spark-worker.*\"}[$__range])) or vector(0)", "legendFormat": "Restarts", "instant": true, "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "min": 0}, "overrides": [{"matcher": {"id": "byName", "options": "Restarts"}, "properties": [{"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "green"}, {"color": "red", "value": 1}]}}, {"id": "color", "value": {"mode": "thresholds"}}]}]},
+      "options": {"colorMode": "background", "graphMode": "none", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "values": false}}
+    },
+    {
+      "type": "timeseries", "title": "Worker CPU and Memory", "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"netflow-demo\",pod=~\"spark-worker.*\",container!=\"\",container!=\"POD\"}[$__rate_interval]))", "legendFormat": "CPU · {{pod}}", "refId": "A"},
+        {"expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"netflow-demo\",pod=~\"spark-worker.*\",container!=\"\",container!=\"POD\"})", "legendFormat": "Memory · {{pod}}", "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"min": 0}, "overrides": [{"matcher": {"id": "byRegexp", "options": "/^CPU/"}, "properties": [{"id": "unit", "value": "cores"}]}, {"matcher": {"id": "byRegexp", "options": "/^Memory/"}, "properties": [{"id": "unit", "value": "bytes"}]}]},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi", "sort": "desc"}}
+    }
+  ],
+  "refresh": "10s", "schemaVersion": 41,
+  "tags": ["netflow", "spark"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "browser",
+  "title": "NetFlow Spark Analyzer",
+  "uid": "netflow-spark-analyzer",
+  "version": 9
+}

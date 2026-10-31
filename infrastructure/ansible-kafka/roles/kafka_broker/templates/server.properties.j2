@@ -1,0 +1,24 @@
+
+process.roles=broker
+node.id={{ kafka_broker_node_id }}
+
+controller.quorum.bootstrap.servers={{ kafka_controller_bootstrap_servers }}
+controller.listener.names=CONTROLLER
+
+listeners=BROKER://{{ kafka_broker_listener_address }}:{{ kafka_broker_port }}
+advertised.listeners=BROKER://{{ kafka_broker_advertised_address }}:{{ kafka_broker_port }}
+inter.broker.listener.name=BROKER
+listener.security.protocol.map=BROKER:PLAINTEXT,CONTROLLER:PLAINTEXT
+
+metadata.log.dir={{ kafka_broker_metadata_dir }}
+log.dirs={{ kafka_broker_data_dirs | join(',') }}
+
+num.partitions={{ kafka_num_partitions }}
+default.replication.factor={{ kafka_default_replication_factor }}
+min.insync.replicas={{ kafka_min_insync_replicas }}
+offsets.topic.replication.factor={{ kafka_offsets_topic_replication_factor }}
+transaction.state.log.replication.factor={{ kafka_transaction_topic_replication_factor }}
+transaction.state.log.min.isr={{ kafka_transaction_topic_min_isr }}
+
+log.retention.hours={{ kafka_log_retention_hours }}
+log.segment.bytes={{ kafka_log_segment_bytes }}

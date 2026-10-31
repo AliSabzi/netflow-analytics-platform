@@ -1,0 +1,36 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "links": [],
+  "panels": [
+    {
+      "type": "table", "title": "Frontend Nodes", "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+      "datasource": {"type": "mysql", "uid": "starrocks"},
+      "targets": [{"refId": "A", "format": "table", "rawQuery": true, "rawSql": "SHOW FRONTENDS"}],
+      "options": {"showHeader": true}
+    },
+    {
+      "type": "table", "title": "Backend Nodes", "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+      "datasource": {"type": "mysql", "uid": "starrocks"},
+      "targets": [{"refId": "A", "format": "table", "rawQuery": true, "rawSql": "SHOW BACKENDS"}],
+      "options": {"showHeader": true}
+    },
+    {
+      "type": "table", "title": "Recent Stream Loads", "gridPos": {"h": 8, "w": 16, "x": 0, "y": 16},
+      "datasource": {"type": "mysql", "uid": "starrocks"},
+      "targets": [{"refId": "A", "format": "table", "rawQuery": true, "rawSql": "SELECT LABEL, TABLE_NAME, STATE, NUM_ROWS_NORMAL, NUM_ROWS_AB_NORMAL, FROM_UNIXTIME(CREATE_TIME_MS / 1000) AS CREATED_AT FROM information_schema.stream_loads ORDER BY CREATE_TIME_MS DESC LIMIT 20"}],
+      "options": {"showHeader": true}
+    },
+    {
+      "type": "bargauge", "title": "Compaction Candidates", "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+      "datasource": {"type": "mysql", "uid": "starrocks"},
+      "targets": [{"refId": "A", "format": "table", "rawQuery": true, "rawSql": "SELECT CAST(BE_ID AS CHAR) AS metric, CANDIDATES_NUM AS value FROM information_schema.be_compactions"}],
+      "fieldConfig": {"defaults": {"min": 0, "decimals": 0}, "overrides": []},
+      "options": {"displayMode": "gradient", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "values": false}}
+    }
+  ],
+  "refresh": "30s", "schemaVersion": 41,
+  "tags": ["netflow", "starrocks", "cluster"], "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"}, "timezone": "browser",
+  "title": "StarRocks Cluster", "uid": "netflow-starrocks-cluster", "version": 5
+}

@@ -1,0 +1,64 @@
+global:
+  registry: ghcr.io/alisabzi
+  imageTag: latest
+  kafka:
+    bootstrapServers: "192.0.2.11:9092,192.0.2.12:9092,192.0.2.13:9092"
+
+fullnameOverride: ""
+
+autoscaling:
+  minReplicas: 1
+  maxReplicas: 3
+  lagThreshold: "4000000"
+
+image:
+  repository: hdfs-writer
+  pullPolicy: IfNotPresent
+
+kafka:
+  groupId: netflow-hdfs-writer-group
+  lateConsumerGroup: netflow-hdfs-late-writer-group
+  topic: multi-version-netflow
+  dlqTopic: multi-version-netflow-dlq
+  lateTopic: multi-version-netflow-late
+  lateTopicPartitions: "24"
+  lateTopicReplicationFactor: "3"
+  watermarkTopic: multi-version-netflow-watermarks
+  watermarkTopicPartitions: "1"
+  watermarkTopicReplicationFactor: "3"
+
+hdfs:
+  outputPath: /data/netflow/
+  user: hadoop
+  flushThresholdRecords: "3000000"
+  flushThresholdSeconds: "5000"
+  allowedLatenessMinutes: "60"
+  hostAliases:
+    - ip: 192.0.2.11
+      hostnames: [netflow-demo-node1]
+    - ip: 192.0.2.12
+      hostnames: [netflow-demo-node2]
+    - ip: 192.0.2.13
+      hostnames: [netflow-demo-node3]
+    - ip: 192.0.2.14
+      hostnames: [netflow-demo-node4]
+
+metrics:
+  port: 9400
+
+lateDataJob:
+  enabled: false
+  schedule: "0 2 * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+
+jvm:
+  options: "-Xms512m -Xmx2g -XX:+ExitOnOutOfMemoryError"
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 2Gi
+  limits:
+    cpu: "2"
+    memory: 3Gi

@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/netflow}
+    username: ${SPRING_DATASOURCE_USERNAME:netflow_user}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+starrocks:
+  datasource:
+    url: ${STARROCKS_DATASOURCE_URL:jdbc:mysql://localhost:9030/netflow_db}
+    username: ${STARROCKS_DATASOURCE_USERNAME:netflow_reader}
+    password: ${STARROCKS_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  table: netflow
+server:
+  port: 8001
+  error:
+    include-message: always

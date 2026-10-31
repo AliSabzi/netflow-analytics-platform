@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-history-server
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.historyServer.replicas }}
+
+  selector:
+    matchLabels:
+      app: spark-history-server
+
+  template:
+    metadata:
+      labels:
+        app: spark-history-server
+
+    spec:
+      containers:
+        - name: spark-history-server
+          image: {{ .Values.spark.image }}
+          imagePullPolicy: {{ .Values.historyServer.imagePullPolicy }}
+
+          env:
+            - name: HADOOP_CONF_DIR
+              value: /etc/hadoop/conf
+
+            - name: SPARK_DAEMON_MEMORY
+              value: {{ .Values.historyServer.javaHeap | quote }}
+
+            - name: SPARK_HISTORY_OPTS
+              value: >-
+                -Dspark.history.fs.logDirectory={{ .Values.historyServer.eventLogDir }}
+                -Dspark.history.ui.port={{ .Values.historyServer.webUiPort }}
+                -Dspark.history.fs.cleaner.enabled={{ .Values.historyServer.cleaner.enabled }}
+                -Dspark.history.fs.cleaner.interval={{ .Values.historyServer.cleaner.interval }}
+                -Dspark.history.fs.cleaner.maxAge={{ .Values.historyServer.cleaner.maxAge }}
+
+          command:
+            - /opt/spark/bin/spark-class
+
+          args:
+            - org.apache.spark.deploy.history.HistoryServer
+
+          volumeMounts:
+            - name: hadoop-config
+              mountPath: /etc/hadoop/conf
+              readOnly: true
+
+          resources:
+            {{- toYaml .Values.historyServer.resources | nindent 12 }}
+
+      volumes:
+        - name: hadoop-config
+          configMap:
+            name: hadoop-config

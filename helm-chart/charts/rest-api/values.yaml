@@ -1,0 +1,26 @@
+global:
+  registry: ghcr.io/alisabzi
+  imageTag: latest
+
+fullnameOverride: ""
+
+replicaCount: 1
+
+image:
+  repository: rest-api
+
+service:
+  type: LoadBalancer
+  port: 8001
+
+env:
+  postgresUrl: "jdbc:postgresql://192.0.2.21:5432/netflow"
+  postgresUser: "postgres"
+  starrocksUrl: "jdbc:mysql://192.0.2.14:9030/netflow_db"
+  starrocksUser: "root"
+
+secret:
+  create: false
+  existingSecret: netflow-secrets
+  postgresPassword: ""
+  starrocksPassword: ""

@@ -1,0 +1,17 @@
+
+process.roles=controller
+node.id={{ kafka_controller_node_id }}
+
+controller.quorum.bootstrap.servers={{ kafka_controller_bootstrap_servers }}
+controller.listener.names=CONTROLLER
+
+listeners=CONTROLLER://{{ kafka_controller_listener_address }}:{{ kafka_controller_port }}
+inter.broker.listener.name=BROKER
+listener.security.protocol.map=BROKER:PLAINTEXT,CONTROLLER:PLAINTEXT
+
+metadata.log.dir={{ kafka_controller_metadata_dir }}
+log.dirs={{ kafka_controller_metadata_dir }}
+
+num.partitions={{ kafka_num_partitions }}
+default.replication.factor={{ kafka_default_replication_factor }}
+min.insync.replicas={{ kafka_min_insync_replicas }}

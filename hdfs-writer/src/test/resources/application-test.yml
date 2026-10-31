@@ -1,0 +1,13 @@
+app:
+  kafka:
+    topic: netflow-integration-test
+    dlq-topic: netflow-integration-test-dlq
+    dlq-partitions: 1
+    dlq-replication-factor: 1
+    late-topic: netflow-integration-test-late
+    late-topic-replication-factor: 1
+    watermark-topic: netflow-integration-test-watermarks
+    watermark-topic-replication-factor: 1
+  hdfs:
+    output-path: target/test-hdfs
+    flush-threshold-records: 1

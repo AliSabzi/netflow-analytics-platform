@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "starrocks-writer.fullname" . }}-config
+  labels:
+    app: starrocks-writer
+data:
+  JAVA_TOOL_OPTIONS: {{ .Values.javaToolOptions | quote }}
+  KAFKA_BOOTSTRAP_SERVERS: {{ .Values.global.kafka.bootstrapServers | quote }}
+  KAFKA_SOURCE_TOPIC: {{ .Values.env.kafkaSourceTopic | quote }}
+  KAFKA_CONSUMER_GROUP: {{ .Values.env.kafkaConsumerGroup | quote }}
+  KAFKA_DLQ_TOPIC: {{ .Values.env.kafkaDlqTopic | quote }}
+  KAFKA_MAX_POLL_RECORDS: {{ .Values.env.kafkaMaxPollRecords | quote }}
+  KAFKA_MAX_PARTITION_FETCH_BYTES: {{ .Values.env.kafkaMaxPartitionFetchBytes | quote }}
+  STARROCKS_FE_HTTP_URL: {{ .Values.env.starrocksFeUrl | quote }}
+  STARROCKS_FE_QUERY_URL: {{ .Values.env.starrocksFeQueryUrl | quote }}
+  STARROCKS_DATABASE: {{ .Values.env.starrocksDb | quote }}
+  STARROCKS_TABLE: {{ .Values.env.starrocksTable | quote }}
+  STARROCKS_USER: {{ .Values.env.starrocksUser | quote }}
+  METRICS_PORT: {{ .Values.env.metricsPort | quote }}

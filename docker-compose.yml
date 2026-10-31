@@ -1,0 +1,80 @@
+services:
+  hdfs-writer:
+    image: ${REGISTRY_URL:-ghcr.io/alisabzi}/hdfs-writer:${IMAGE_TAG:-portfolio}
+    restart: unless-stopped
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:?Set Kafka endpoints in .env}
+      KAFKA_TOPIC: ${KAFKA_TOPIC:-netflow}
+      SCHEMA_REGISTRY_URL: ${SCHEMA_REGISTRY_URL:?Set the schema registry URL in .env}
+      KAFKA_GROUP_ID: netflow-hdfs-writer-group
+      HADOOP_USER_NAME: ${HADOOP_USER_NAME:-hadoop}
+      METRICS_PORT: "9400"
+    volumes:
+      - ${HADOOP_CONFIG_DIR:-./.local/hadoop}/core-site.xml:/app/resources/core-site.xml:ro
+      - ${HADOOP_CONFIG_DIR:-./.local/hadoop}/hdfs-site.xml:/app/resources/hdfs-site.xml:ro
+    ports:
+      - "9400:9400"
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  starrocks-writer:
+    image: ${REGISTRY_URL:-ghcr.io/alisabzi}/starrocks-writer:${IMAGE_TAG:-portfolio}
+    restart: unless-stopped
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:?Set Kafka endpoints in .env}
+      KAFKA_SOURCE_TOPIC: ${KAFKA_TOPIC:-netflow}
+      STARROCKS_FE_HTTP_URL: ${STARROCKS_FE_HTTP_URL:?Set the StarRocks HTTP URL in .env}
+      STARROCKS_FE_QUERY_URL: ${STARROCKS_FE_QUERY_URL:?Set the StarRocks query URL in .env}
+      STARROCKS_DATABASE: ${STARROCKS_DATABASE:-netflow_db}
+      STARROCKS_TABLE: ${STARROCKS_TABLE:-netflow}
+      STARROCKS_USER: ${STARROCKS_USER:-netflow_writer}
+      STARROCKS_PASSWORD: ${STARROCKS_PASSWORD:?Set your StarRocks writer password in .env}
+      METRICS_PORT: "9402"
+    ports:
+      - "9402:9402"
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  rest-api:
+    image: ${REGISTRY_URL:-ghcr.io/alisabzi}/rest-api:${IMAGE_TAG:-portfolio}
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:?Set the PostgreSQL URL in .env}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-netflow_user}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?Set your PostgreSQL password in .env}
+      STARROCKS_DATASOURCE_URL: ${STARROCKS_DATASOURCE_URL:?Set the StarRocks JDBC URL in .env}
+      STARROCKS_DATASOURCE_USERNAME: ${STARROCKS_DATASOURCE_USERNAME:-netflow_reader}
+      STARROCKS_DATASOURCE_PASSWORD: ${STARROCKS_DATASOURCE_PASSWORD:?Set your StarRocks API password in .env}
+      METRICS_PORT: "9403"
+    ports:
+      - "8001:8001"
+      - "9403:9403"
+
+  spark-analyzer:
+    profiles: [batch]
+    image: ${REGISTRY_URL:-ghcr.io/alisabzi}/spark-analyzer:${IMAGE_TAG:-portfolio}
+    restart: "no"
+    environment:
+      SPARK_MASTER: ${SPARK_MASTER:-spark://spark-master.example.com:7077}
+      SPARK_DRIVER_HOST: ${SPARK_DRIVER_HOST:-spark-driver.example.com}
+      SPARK_TIMEZONE: ${SPARK_TIMEZONE:-Asia/Tehran}
+      SPARK_EXECUTOR_CORES: ${SPARK_EXECUTOR_CORES:-2}
+      SPARK_EXECUTOR_MEMORY: ${SPARK_EXECUTOR_MEMORY:-1g}
+      HDFS_PARQUET_PATH: ${HDFS_PARQUET_PATH:-hdfs://netflow-demo/data/netflow}
+      POSTGRES_URL: ${POSTGRES_URL:-jdbc:postgresql://postgresql.example.com:5432/netflow}
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME:-netflow_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set the Spark PostgreSQL password in .env}
+      POSTGRES_DRIVER: ${POSTGRES_DRIVER:-org.postgresql.Driver}
+      POSTGRES_TABLE_PROTOCOL_USAGE: ${POSTGRES_TABLE_PROTOCOL_USAGE:-protocol_usage}
+      POSTGRES_TABLE_IP_CONNECTIONS: ${POSTGRES_TABLE_IP_CONNECTIONS:-ip_connections}
+      POSTGRES_TABLE_IP_BANDWIDTH: ${POSTGRES_TABLE_IP_BANDWIDTH:-ip_bandwidth}
+      PUSHGATEWAY_ADDRESS: ${PUSHGATEWAY_ADDRESS:-}
+    volumes:
+      - ${HADOOP_CONFIG_DIR:-./.local/hadoop}/core-site.xml:/app/resources/core-site.xml:ro
+      - ${HADOOP_CONFIG_DIR:-./.local/hadoop}/hdfs-site.xml:/app/resources/hdfs-site.xml:ro

@@ -1,0 +1,97 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [{"title": "Alerting", "type": "link", "url": "/alerting/list", "icon": "bell"}],
+  "panels": [
+    {
+      "type": "stat", "title": "Reachable NameNodes", "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(up{job=\"hdfs-namenode\"}) or vector(0)", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "red"}, {"color": "green", "value": 1}]}, "color": {"mode": "thresholds"}}, "overrides": []},
+      "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"], "values": false}}
+    },
+    {
+      "type": "stat", "title": "Reachable DataNodes", "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum(up{job=\"hdfs-datanode\"}) or vector(0)", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "red"}, {"color": "green", "value": 1}]}, "color": {"mode": "thresholds"}}, "overrides": []},
+      "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"], "values": false}}
+    },
+    {
+      "type": "stat", "title": "Capacity Used", "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "max(hadoop_namenode_capacity_used{job=\"hdfs-namenode\"}) / clamp_min(max(hadoop_namenode_capacity_total{job=\"hdfs-namenode\"}), 1)", "instant": true, "refId": "A"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "green"}, {"color": "yellow", "value": 0.8}, {"color": "red", "value": 0.9}]}, "color": {"mode": "thresholds"}}, "overrides": []},
+      "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"], "values": false}}
+    },
+    {
+      "type": "stat", "title": "Missing and Corrupt Blocks", "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "max(hadoop_namenode_missing_blocks{job=\"hdfs-namenode\"}) or vector(0)", "legendFormat": "Missing", "instant": true, "refId": "A"},
+        {"expr": "max(hadoop_namenode_corrupt_blocks{job=\"hdfs-namenode\"}) or vector(0)", "legendFormat": "Corrupt", "instant": true, "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "green"}, {"color": "red", "value": 1}]}, "color": {"mode": "thresholds"}}, "overrides": []},
+      "options": {"colorMode": "background", "graphMode": "none", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "values": false}}
+    },
+    {
+      "type": "timeseries", "title": "HDFS Capacity", "gridPos": {"h": 7, "w": 24, "x": 0, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "max(hadoop_namenode_capacity_used{job=\"hdfs-namenode\"})", "legendFormat": "Used", "refId": "A"},
+        {"expr": "max(hadoop_namenode_capacity_remaining{job=\"hdfs-namenode\"})", "legendFormat": "Remaining", "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "bytes", "min": 0}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]}, "tooltip": {"mode": "multi"}}
+    },
+    {
+      "type": "timeseries", "title": "Read and Write Throughput", "gridPos": {"h": 8, "w": 12, "x": 0, "y": 11},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(hadoop_datanode_bytes_read{job=\"hdfs-datanode\"}[$__rate_interval]))", "legendFormat": "Read", "refId": "A"},
+        {"expr": "sum(rate(hadoop_datanode_bytes_written{job=\"hdfs-datanode\"}[$__rate_interval]))", "legendFormat": "Write", "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "Bps", "min": 0}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "mean"]}, "tooltip": {"mode": "multi"}}
+    },
+    {
+      "type": "stat", "title": "Read and Write Volume", "description": "Total data transferred during the selected dashboard time range.", "gridPos": {"h": 8, "w": 12, "x": 12, "y": 11},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(increase(hadoop_datanode_bytes_read{job=\"hdfs-datanode\"}[$__range]))", "legendFormat": "Read", "instant": true, "refId": "A"},
+        {"expr": "sum(increase(hadoop_datanode_bytes_written{job=\"hdfs-datanode\"}[$__range]))", "legendFormat": "Write", "instant": true, "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "bytes", "min": 0}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "values": false}}
+    },
+    {
+      "type": "timeseries", "title": "Read and Write Operations", "gridPos": {"h": 8, "w": 12, "x": 0, "y": 19},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(hadoop_datanode_blocks_read{job=\"hdfs-datanode\"}[$__rate_interval]))", "legendFormat": "Blocks read", "refId": "A"},
+        {"expr": "sum(rate(hadoop_datanode_blocks_written{job=\"hdfs-datanode\"}[$__rate_interval]))", "legendFormat": "Blocks written", "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops", "min": 0}, "overrides": []},
+      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "mean"]}, "tooltip": {"mode": "multi"}}
+    },
+    {
+      "type": "stat", "title": "Read and Write Block Count", "description": "Total block operations during the selected dashboard time range.", "gridPos": {"h": 8, "w": 12, "x": 12, "y": 19},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(increase(hadoop_datanode_blocks_read{job=\"hdfs-datanode\"}[$__range]))", "legendFormat": "Blocks read", "instant": true, "refId": "A"},
+        {"expr": "sum(increase(hadoop_datanode_blocks_written{job=\"hdfs-datanode\"}[$__range]))", "legendFormat": "Blocks written", "instant": true, "refId": "B"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "min": 0}, "overrides": []},
+      "options": {"colorMode": "value", "graphMode": "none", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "values": false}}
+    }
+  ],
+  "refresh": "10s", "schemaVersion": 41,
+  "tags": ["netflow", "hdfs", "cluster"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "browser",
+  "title": "HDFS Cluster",
+  "uid": "netflow-hdfs-cluster",
+  "version": 1
+}

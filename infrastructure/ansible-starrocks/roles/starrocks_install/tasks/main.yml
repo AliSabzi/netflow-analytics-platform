@@ -1,0 +1,39 @@
+---
+- name: Create the StarRocks release directory
+  file:
+    path: "{{ sr_release_dir }}"
+    state: directory
+    owner: "{{ sr_user }}"
+    group: "{{ sr_group }}"
+    mode: '0755'
+  become: true
+
+- name: Extract StarRocks {{ starrocks_version }}
+  unarchive:
+    src: "{{ sr_package_local_path }}"
+    dest: "{{ sr_release_dir }}"
+    remote_src: true
+    extra_opts: ['--strip-components=1']
+    creates: "{{ sr_release_marker }}"
+    owner: "{{ sr_user }}"
+    group: "{{ sr_group }}"
+  become: true
+
+- name: Record the successfully extracted StarRocks version
+  copy:
+    content: "{{ starrocks_version }}\n"
+    dest: "{{ sr_release_marker }}"
+    owner: "{{ sr_user }}"
+    group: "{{ sr_group }}"
+    mode: '0644'
+  become: true
+
+- name: Point current to StarRocks {{ starrocks_version }}
+  file:
+    src: "{{ sr_release_dir }}"
+    dest: "{{ sr_current_dir }}"
+    state: link
+    owner: "{{ sr_user }}"
+    group: "{{ sr_group }}"
+    force: true
+  become: true

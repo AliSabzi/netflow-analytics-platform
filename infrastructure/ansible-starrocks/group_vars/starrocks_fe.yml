@@ -1,0 +1,6 @@
+---
+fe_edit_log_port: 9010
+fe_http_port: 8030
+fe_rpc_port: 9020
+
+fe_java_heap: "-Xmx2048m -Xms2048m"

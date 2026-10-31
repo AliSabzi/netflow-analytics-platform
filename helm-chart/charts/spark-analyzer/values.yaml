@@ -1,0 +1,50 @@
+global:
+  registry: ghcr.io/alisabzi
+  imageTag: latest
+
+fullnameOverride: ""
+
+schedule: "15 * * * *"
+
+image:
+  repository: spark-analyzer
+  pullPolicy: IfNotPresent
+
+javaToolOptions: >-
+  -Dspark.jars=/app/libs/postgresql-42.7.3.jar
+  -Dspark.eventLog.enabled=true
+  -Dspark.eventLog.dir=hdfs://netflow-demo/data/spark-events
+
+hdfs:
+  parquetPath: hdfs://netflow-demo/data/netflow
+
+spark:
+  master: spark://spark-master.netflow-demo.svc.cluster.local:7077
+  executorCores: 2
+  executorMemory: 1g
+  timezone: Asia/Tehran
+
+postgresql:
+  url: jdbc:postgresql://postgresql.netflow-demo.svc.cluster.local:5432/netflow?stringtype=unspecified
+  username: postgres
+  driver: org.postgresql.Driver
+  tables:
+    protocolUsage: protocol_usage
+    ipConnections: ip_connections
+    ipBandwidth: ip_bandwidth
+
+secret:
+  create: false
+  existingSecret: netflow-secrets
+  password: ""
+
+pushgatewayAddress: spark-pushgateway.monitoring.svc.cluster.local:9091
+metricsPort: "9401"
+
+resources:
+  requests:
+    cpu: 1
+    memory: 2Gi
+  limits:
+    cpu: 2
+    memory: 3Gi

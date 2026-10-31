@@ -1,0 +1,43 @@
+---
+- name: Remove the old combined Kafka deployment
+  hosts: kafka_cluster
+  become: true
+  gather_facts: false
+  serial: 1
+  vars:
+    kafka_allow_destructive_cleanup: false
+    legacy_kafka_paths:
+      - "{{ kafka_storage_root }}/kafka"
+      - "{{ kafka_storage_root }}/kafka-logs"
+  tasks:
+    - name: Require explicit cleanup confirmation
+      ansible.builtin.assert:
+        that:
+          - kafka_allow_destructive_cleanup | bool
+          - kafka_storage_root | length > 1
+          - kafka_storage_root != '/'
+        fail_msg: >-
+          Cleanup is blocked. Pass
+          -e kafka_allow_destructive_cleanup=true only after confirming data loss.
+
+    - name: Stop and disable old combined Kafka service
+      ansible.builtin.systemd:
+        name: kafka
+        state: stopped
+        enabled: false
+      failed_when: false
+
+    - name: Remove old combined Kafka service unit
+      ansible.builtin.file:
+        path: /etc/systemd/system/kafka.service
+        state: absent
+
+    - name: Reload systemd after removing old service
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Remove old Kafka installation and data
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ legacy_kafka_paths }}"

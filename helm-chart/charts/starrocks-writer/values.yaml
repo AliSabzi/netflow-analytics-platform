@@ -1,0 +1,49 @@
+global:
+  registry: ghcr.io/alisabzi
+  imageTag: latest
+  kafka:
+    bootstrapServers: "192.0.2.11:9092,192.0.2.12:9092,192.0.2.13:9092"
+
+fullnameOverride: ""
+
+autoscaling:
+  minReplicas: 1
+  maxReplicas: 3
+  lagThreshold: "2000000"
+
+image:
+  repository: starrocks-writer
+
+javaToolOptions: "-Xms256m -Xmx1536m -XX:+ExitOnOutOfMemoryError"
+
+resources:
+  requests:
+    memory: 1Gi
+  limits:
+    memory: 2Gi
+
+env:
+  kafkaSourceTopic: "netflow"
+  kafkaConsumerGroup: "netflow-starrocks-writer"
+  kafkaDlqTopic: "netflow-starrocks-dlq"
+  kafkaMaxPollRecords: "100000"
+  kafkaMaxPartitionFetchBytes: "33554432"
+  starrocksFeUrl: "http://192.0.2.14:8030"
+  starrocksFeQueryUrl: "jdbc:mysql://192.0.2.14:9030"
+  starrocksDb: "netflow_db"
+  starrocksTable: "netflow"
+  starrocksUser: "root"
+  metricsPort: "9402"
+
+secret:
+  create: false
+  existingSecret: netflow-secrets
+  password: ""
+
+backfill:
+  enabled: false
+  image: ""
+  start: ""
+  end: ""
+  hdfsRoot: hdfs://192.0.2.13:8020/data/netflow
+  runId: ""

@@ -1,0 +1,99 @@
+---
+- name: Check AVX2 support on Backend nodes
+  command: grep -qw avx2 /proc/cpuinfo
+  register: avx2_check
+  changed_when: false
+  failed_when: false
+  when: inventory_hostname in groups['starrocks_be']
+
+- name: Verify AVX2 support on Backend nodes
+  assert:
+    that:
+      - avx2_check.rc == 0
+    fail_msg: StarRocks Backend requires a CPU with AVX2 support.
+    success_msg: The CPU supports AVX2.
+  when: inventory_hostname in groups['starrocks_be']
+
+- name: Create StarRocks system group
+  group:
+    name: "{{ sr_group }}"
+    system: true
+    state: present
+  become: true
+
+- name: Create StarRocks system user
+  user:
+    name: "{{ sr_user }}"
+    group: "{{ sr_group }}"
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+    state: present
+  become: true
+
+- name: Create StarRocks base and data directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ sr_user }}"
+    group: "{{ sr_group }}"
+    mode: '0755'
+  loop:
+    - "{{ sr_base_dir }}"
+    - "{{ sr_base_dir }}/fe/meta"
+    - "{{ sr_base_dir }}/be/storage"
+  become: true
+
+- name: Set system limits (nofile and nproc)
+  copy:
+    dest: /etc/security/limits.d/starrocks.conf
+    content: |
+      {{ sr_user }} soft nofile 1000000
+      {{ sr_user }} hard nofile 1000000
+      {{ sr_user }} soft nproc 1000000
+      {{ sr_user }} hard nproc 1000000
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: Configure sysctl parameters
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop:
+    - { name: 'fs.file-max', value: '6553560' }
+    - { name: 'vm.max_map_count', value: '2000000' }
+    - { name: 'vm.swappiness', value: '0' }
+  become: true
+
+- name: Install service for disabling Transparent Huge Pages (THP)
+  template:
+    src: disable-thp.service.j2
+    dest: /etc/systemd/system/disable-thp.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart THP disable service
+  become: true
+
+- name: Apply changes to THP disable service immediately
+  meta: flush_handlers
+
+- name: Enable and start THP disable service
+  systemd:
+    name: disable-thp.service
+    enabled: true
+    state: started
+  become: true
+
+- name: Verify Transparent Huge Pages (THP) are disabled
+  command: "cat {{ item }}"
+  loop:
+    - /sys/kernel/mm/transparent_hugepage/enabled
+    - /sys/kernel/mm/transparent_hugepage/defrag
+  register: thp_status
+  changed_when: false
+  failed_when: thp_status.rc != 0 or '[never]' not in thp_status.stdout

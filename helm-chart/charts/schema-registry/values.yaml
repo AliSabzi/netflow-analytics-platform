@@ -1,0 +1,24 @@
+replicaCount: 1
+
+image:
+  repository: confluentinc/cp-schema-registry
+  tag: "8.1.5"
+  pullPolicy: IfNotPresent
+
+containerPort: 8081
+
+service:
+  name: schema-registry-svc
+  type: LoadBalancer
+  port: 8081
+
+config:
+  kafkaBootstrapServers: "PLAINTEXT://192.0.2.11:9092,PLAINTEXT://192.0.2.12:9092,PLAINTEXT://192.0.2.13:9092,PLAINTEXT://192.0.2.14:9092"
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi

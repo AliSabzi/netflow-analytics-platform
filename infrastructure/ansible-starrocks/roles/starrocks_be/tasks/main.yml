@@ -1,0 +1,49 @@
+---
+- name: Deploy be.conf
+  template:
+    src: be.conf.j2
+    dest: "{{ sr_current_dir }}/be/conf/be.conf"
+    owner: "{{ sr_user }}"
+    group: "{{ sr_group }}"
+  become: true
+  notify: restart be
+
+- name: Deploy starrocks-be systemd service
+  template:
+    src: starrocks-be.service.j2
+    dest: /etc/systemd/system/starrocks-be.service
+    mode: '0644'
+  become: true
+  notify:
+    - reload systemd
+    - restart be
+
+- name: Flush handlers
+  meta: flush_handlers
+
+- name: Start and enable starrocks-be service
+  systemd:
+    name: starrocks-be
+    state: started
+    enabled: true
+  become: true
+
+- name: Get list of registered backends
+  command: >
+    mysql -h {{ master_fe_ip }} -P {{ fe_query_port }} -u root -N -e "SHOW PROC '/backends';"
+  register: registered_backends
+  delegate_to: "{{ master_fe_ip }}"
+  run_once: true
+  changed_when: false
+
+- name: Register Backend to FE
+  command: >
+    mysql -h {{ master_fe_ip }} -P {{ fe_query_port }} -u root -e
+    "ALTER SYSTEM ADD BACKEND '{{ inventory_hostname }}:{{ be_heartbeat_port }}';"
+  delegate_to: "{{ master_fe_ip }}"
+  when: inventory_hostname not in registered_backends.stdout
+
+- name: Wait for Backend heartbeat port
+  wait_for:
+    port: "{{ be_heartbeat_port }}"
+    timeout: 60

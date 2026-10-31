@@ -1,0 +1,12 @@
+[Unit]
+Description=Disable Transparent Huge Pages for StarRocks
+Before=starrocks-fe.service starrocks-be.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'echo never > /sys/kernel/mm/transparent_hugepage/enabled'
+ExecStart=/bin/sh -c 'echo never > /sys/kernel/mm/transparent_hugepage/defrag'
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target

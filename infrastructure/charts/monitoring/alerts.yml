@@ -1,0 +1,106 @@
+groups:
+  - name: netflow-pipeline
+    rules:
+      - alert: HdfsWriterUnavailable
+        expr: (sum(up{job="hdfs-writer"} * on(job, instance) netflow_hdfs_writer_ready{job="hdfs-writer"}) or vector(0)) == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: No HDFS Writer instance is reachable and ready
+
+      - alert: HdfsPipelineStalled
+        expr: sum by (topic) (increase(netflow_hdfs_records_committed_total{job="hdfs-writer"}[10m])) == 0 and on (topic) sum by (topic) (kafka_consumergroup_lag{consumergroup="netflow-hdfs-writer-group"}) > 1000
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: HDFS output stopped for {{ $labels.topic }} while Kafka has pending records
+
+      - alert: HdfsDlqRatioHigh
+        expr: sum by (topic) (rate(netflow_hdfs_records_dlq_total{job="hdfs-writer"}[5m])) / clamp_min(sum by (topic) (rate(netflow_hdfs_records_received_total{job="hdfs-writer"}[5m])), 0.001) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: More than one percent of HDFS Writer input for {{ $labels.topic }} goes to the DLQ
+
+      - alert: SparkBatchFailed
+        expr: max(netflow_spark_last_run_success{job="spark-analyzer"}) == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: The latest reported Spark batch attempt failed
+
+      - alert: SparkBatchOverdue
+        expr: time() - (max(netflow_spark_last_success_timestamp_seconds{job="spark-analyzer"}) or vector(0)) > 7200
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: No confirmed successful Spark batch in the last two hours
+
+      - alert: SparkMetricsUnavailable
+        expr: up{job="spark-pushgateway"} == 0 or absent(up{job="spark-pushgateway"})
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Spark batch metrics gateway is unavailable
+
+      - alert: StarRocksWriterUnavailable
+        expr: (sum(up{job="starrocks-writer"} * on(job, instance) netflow_starrocks_writer_ready{job="starrocks-writer"}) or vector(0)) == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: No StarRocks Writer instance is reachable and ready
+
+      - alert: StarRocksPipelineStalled
+        expr: sum by (topic) (increase(netflow_starrocks_records_committed_total{job="starrocks-writer"}[5m])) == 0 and on (topic) sum by (topic) (kafka_consumergroup_lag{consumergroup="netflow-starrocks-writer"}) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: StarRocks Writer stopped committing {{ $labels.topic }} while Kafka has pending records
+
+      - alert: StarRocksDlqRatioHigh
+        expr: sum by (topic) (rate(netflow_starrocks_records_dlq_total{job="starrocks-writer"}[5m])) / clamp_min(sum by (topic) (rate(netflow_starrocks_records_received_total{job="starrocks-writer"}[5m])), 0.001) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: More than one percent of StarRocks Writer input for {{ $labels.topic }} goes to the DLQ
+
+      - alert: ApiEndpointUnavailable
+        expr: probe_success{job="rest-api-probe"} == 0 or absent(probe_success{job="rest-api-probe"})
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Public REST API health endpoint is unreachable
+
+      - alert: ApiHttpErrorRatioHigh
+        expr: sum(rate(netflow_api_http_requests_total{job="rest-api",status_class="5xx"}[5m])) / clamp_min(sum(rate(netflow_api_http_requests_total{job="rest-api"}[5m])), 0.001) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: REST API HTTP 5xx ratio is above five percent
+
+      - alert: ApiQueryLatencyHigh
+        expr: sum(rate(netflow_api_query_duration_seconds_sum{job="rest-api"}[5m])) / clamp_min(sum(rate(netflow_api_query_duration_seconds_count{job="rest-api"}[5m])), 0.001) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: REST API average database query duration is above two seconds
+
+      - alert: KafkaMetricsUnavailable
+        expr: up{job=~"kafka-exporter|kafka-broker"} == 0 or absent(up{job="kafka-exporter"}) or absent(up{job="kafka-broker"})
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Kafka exporter or broker metrics endpoint is unavailable

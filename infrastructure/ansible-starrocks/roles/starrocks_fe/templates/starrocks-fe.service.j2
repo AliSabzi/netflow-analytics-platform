@@ -1,0 +1,25 @@
+[Unit]
+Description=StarRocks Frontend Service
+After=network.target
+
+[Service]
+Type=forking
+User={{ sr_user }}
+Group={{ sr_group }}
+Environment="JAVA_HOME={{ java_home }}"
+LimitNOFILE=1000000
+LimitNPROC=1000000
+PIDFile={{ sr_current_dir }}/fe/bin/fe.pid
+
+{% if inventory_hostname in groups['fe_followers'] %}
+ExecStart=/bin/bash -c 'if [ ! -f {{ sr_base_dir }}/fe/meta/image/ROLE ]; then {{ sr_current_dir }}/fe/bin/start_fe.sh --helper {{ master_fe_ip }}:{{ fe_edit_log_port }} --daemon; else {{ sr_current_dir }}/fe/bin/start_fe.sh --daemon; fi'
+{% else %}
+ExecStart={{ sr_current_dir }}/fe/bin/start_fe.sh --daemon
+{% endif %}
+
+ExecStop={{ sr_current_dir }}/fe/bin/stop_fe.sh
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

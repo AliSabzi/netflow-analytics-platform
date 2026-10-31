@@ -1,0 +1,66 @@
+---
+- name: Prepare OS and Prerequisites on all nodes
+  hosts: starrocks_cluster
+  roles:
+    - common
+    - artifact
+    - java
+    - starrocks_install
+
+- name: Install MySQL client on FE master
+  hosts: fe_master
+  roles:
+    - mysql_client
+
+- name: Deploy and Initialize StarRocks Frontends
+  hosts: starrocks_fe
+  serial: 1
+  roles:
+    - starrocks_fe
+
+- name: Deploy and Register StarRocks Backends
+  hosts: starrocks_be
+  serial: 1
+  roles:
+    - starrocks_be
+
+- name: Health Check Cluster
+  hosts: fe_master
+  tasks:
+    - name: Check Frontends status
+      command: mysql -h 127.0.0.1 -P 9030 -u root -N -B -e "SHOW PROC '/frontends';"
+      register: fe_status
+      changed_when: false
+
+    - name: Check Backends status
+      command: mysql -h 127.0.0.1 -P 9030 -u root -N -B -e "SHOW PROC '/backends';"
+      register: be_status
+      changed_when: false
+
+    - name: Verify all Frontends are alive
+      assert:
+        that:
+          - fe_status.stdout_lines | length == groups['starrocks_fe'] | length
+          - >-
+            (fe_status.stdout_lines
+             | select('match', '^(?:[^\t]*\t){10}true(?:\t|$)')
+             | list | length) == groups['starrocks_fe'] | length
+        fail_msg: One or more Frontends are missing or not alive.
+
+    - name: Verify all Backends are alive
+      assert:
+        that:
+          - be_status.stdout_lines | length == groups['starrocks_be'] | length
+          - >-
+            (be_status.stdout_lines
+             | select('match', '^(?:[^\t]*\t){8}true(?:\t|$)')
+             | list | length) == groups['starrocks_be'] | length
+        fail_msg: One or more Backends are missing or not alive.
+
+    - name: Print Summary
+      debug:
+        msg:
+          - "Frontends Status:"
+          - "{{ fe_status.stdout_lines }}"
+          - "Backends Status:"
+          - "{{ be_status.stdout_lines }}"

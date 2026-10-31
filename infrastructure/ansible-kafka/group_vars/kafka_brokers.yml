@@ -1,0 +1,18 @@
+---
+kafka_broker_port: 9092
+kafka_broker_listener_address: "0.0.0.0"
+kafka_broker_advertised_address: "{{ kafka_node_address }}"
+kafka_broker_service_name: "kafka-broker"
+kafka_broker_heap_opts: "-Xms1G -Xmx1G"
+kafka_broker_config_dir: "/etc/kafka-broker"
+kafka_broker_config_file: "{{ kafka_broker_config_dir }}/server.properties"
+kafka_broker_jmx_exporter_port: 7071
+kafka_broker_jmx_exporter_config_file: "{{ kafka_broker_config_dir }}/jmx-exporter.yml"
+kafka_broker_metadata_dir: "{{ kafka_storage_root }}/kafka-broker-metadata"
+kafka_broker_data_dirs:
+  - "{{ kafka_storage_root }}/kafka-broker-data"
+kafka_broker_log_dir: "{{ kafka_storage_root }}/kafka-broker-logs"
+kafka_broker_node_id: "{{ kafka_node_id }}"
+
+kafka_log_retention_hours: 168
+kafka_log_segment_bytes: 1073741824

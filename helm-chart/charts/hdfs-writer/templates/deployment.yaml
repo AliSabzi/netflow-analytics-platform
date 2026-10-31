@@ -1,0 +1,41 @@
+{{- $registry := required "global.registry must be set" .Values.global.registry -}}
+{{- $repository := required "image.repository must be set" .Values.image.repository -}}
+{{- $tag := required "global.imageTag must be set" .Values.global.imageTag -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hdfs-writer.fullname" . }}
+  labels:
+    app: hdfs-writer
+spec:
+  selector:
+    matchLabels:
+      app: hdfs-writer
+  template:
+    metadata:
+      labels:
+        app: hdfs-writer
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      hostAliases:
+        {{- toYaml .Values.hdfs.hostAliases | nindent 8 }}
+      containers:
+        - name: hdfs-writer
+          image: {{ printf "%s/%s:%s" $registry $repository $tag | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "hdfs-writer.fullname" . }}-config
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

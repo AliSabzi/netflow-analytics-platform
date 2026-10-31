@@ -1,0 +1,27 @@
+---
+- name: Create Java installation directory
+  file:
+    path: "{{ java_install_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: Install Java {{ java_version }}
+  unarchive:
+    src: "{{ java_package_local_path }}"
+    dest: "{{ java_install_dir }}"
+    remote_src: true
+    owner: root
+    group: root
+    creates: "{{ java_home }}/bin/java"
+  become: true
+
+- name: Verify Java {{ java_version }}
+  command: "{{ java_home }}/bin/java -version"
+  register: java_version_check
+  changed_when: false
+  failed_when: >-
+    java_version not in
+    (java_version_check.stdout ~ java_version_check.stderr)

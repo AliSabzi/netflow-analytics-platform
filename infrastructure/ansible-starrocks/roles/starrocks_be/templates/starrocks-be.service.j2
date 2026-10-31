@@ -1,0 +1,17 @@
+[Unit]
+Description=StarRocks Backend Service
+After=network.target
+
+[Service]
+Type=forking
+User={{ sr_user }}
+Group={{ sr_group }}
+Environment="JAVA_HOME={{ java_home }}"
+LimitNOFILE=1000000
+LimitNPROC=1000000
+ExecStart={{ sr_current_dir }}/be/bin/start_be.sh --daemon
+ExecStop={{ sr_current_dir }}/be/bin/stop_be.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

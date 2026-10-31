@@ -1,0 +1,31 @@
+global:
+  registry: ghcr.io/alisabzi
+  imageTag: latest
+
+fullnameOverride: ""
+schedule: "45 * * * *"
+
+image:
+  repository: behavioral-clustering
+  pullPolicy: IfNotPresent
+
+hdfs:
+  inputPath: hdfs://netflow-demo/data/netflow/*/hour_*_ready/*.parquet
+
+postgresql:
+  url: jdbc:postgresql://postgresql.netflow-demo.svc.cluster.local:5432/netflow?stringtype=unspecified
+  username: postgres
+  existingSecret: netflow-secrets
+
+spark:
+  master: spark://spark-master.netflow-demo.svc.cluster.local:7077
+  executorCores: 2
+  executorMemory: 1g
+
+resources:
+  requests:
+    cpu: 1
+    memory: 2Gi
+  limits:
+    cpu: 2
+    memory: 4Gi

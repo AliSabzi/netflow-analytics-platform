@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "hdfs-writer.fullname" . }}-config
+data:
+  KAFKA_BOOTSTRAP_SERVERS: {{ .Values.global.kafka.bootstrapServers | quote }}
+  KAFKA_GROUP_ID: {{ .Values.kafka.groupId | quote }}
+  KAFKA_LATE_CONSUMER_GROUP: {{ .Values.kafka.lateConsumerGroup | quote }}
+  KAFKA_TOPIC: {{ .Values.kafka.topic | quote }}
+  KAFKA_DLQ_TOPIC: {{ .Values.kafka.dlqTopic | quote }}
+  KAFKA_LATE_TOPIC: {{ .Values.kafka.lateTopic | quote }}
+  KAFKA_LATE_TOPIC_PARTITIONS: {{ .Values.kafka.lateTopicPartitions | quote }}
+  KAFKA_LATE_TOPIC_REPLICATION_FACTOR: {{ .Values.kafka.lateTopicReplicationFactor | quote }}
+  KAFKA_WATERMARK_TOPIC: {{ .Values.kafka.watermarkTopic | quote }}
+  KAFKA_WATERMARK_TOPIC_PARTITIONS: {{ .Values.kafka.watermarkTopicPartitions | quote }}
+  KAFKA_WATERMARK_TOPIC_REPLICATION_FACTOR: {{ .Values.kafka.watermarkTopicReplicationFactor | quote }}
+  HDFS_OUTPUT_PATH: {{ .Values.hdfs.outputPath | quote }}
+  HDFS_FLUSH_THRESHOLD_RECORDS: {{ .Values.hdfs.flushThresholdRecords | quote }}
+  HDFS_FLUSH_THRESHOLD_SECONDS: {{ .Values.hdfs.flushThresholdSeconds | quote }}
+  HDFS_ALLOWED_LATENESS_MINUTES: {{ .Values.hdfs.allowedLatenessMinutes | quote }}
+  HADOOP_USER_NAME: {{ .Values.hdfs.user | quote }}
+  METRICS_PORT: {{ .Values.metrics.port | quote }}
+  JAVA_TOOL_OPTIONS: {{ .Values.jvm.options | quote }}

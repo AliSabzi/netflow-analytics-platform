@@ -1,0 +1,51 @@
+---
+- name: Reset StarRocks installation on all nodes
+  hosts: starrocks_cluster
+  become: true
+  tasks:
+    - name: Require explicit cleanup confirmation
+      assert:
+        that:
+          - cleanup_confirm | default(false) | bool
+        fail_msg: >-
+          Cleanup deletes all StarRocks metadata and data. Run again with
+          -e cleanup_confirm=true only when a full reset is intended.
+
+    - name: Stop and disable managed services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - starrocks-fe.service
+        - starrocks-be.service
+        - disable-thp.service
+      failed_when: false
+
+    - name: Remove managed systemd unit files
+      file:
+        path: "/etc/systemd/system/{{ item }}"
+        state: absent
+      loop:
+        - starrocks-fe.service
+        - starrocks-be.service
+        - disable-thp.service
+
+    - name: Reload systemd after removing unit files
+      systemd:
+        daemon_reload: true
+
+    - name: Remove StarRocks data, releases, and artifacts
+      file:
+        path: "{{ sr_base_dir }}"
+        state: absent
+
+    - name: Remove the managed Java installation
+      file:
+        path: "{{ java_home }}"
+        state: absent
+
+    - name: Remove StarRocks limits configuration
+      file:
+        path: /etc/security/limits.d/starrocks.conf
+        state: absent

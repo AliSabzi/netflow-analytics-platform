@@ -1,0 +1,44 @@
+<configuration>
+    <property>
+        <name>fs.defaultFS</name>
+        <value>hdfs://netflow-demo</value>
+    </property>
+    <property>
+        <name>io.file.buffer.size</name>
+        <value>131072</value>
+    </property>
+    <property>
+        <name>net.topology.node.switch.mapping.impl</name>
+        <value>org.apache.hadoop.net.ScriptBasedMapping</value>
+    </property>
+    <property>
+        <name>net.topology.script.file.name</name>
+        <value>/etc/namenode/topology.sh</value>
+    </property>
+    <property>
+        <name>hadoop.http.staticuser.user</name>
+        <value>hadoop</value>
+    </property>
+    <property>
+        <name>hadoop.proxyuser.hadoop.hosts</name>
+        <value>netflow-demo-node1,netflow-demo-node2,netflow-demo-node3</value>
+    </property>
+    <property>
+        <name>hadoop.proxyuser.hadoop.groups</name>
+        <value>*</value>
+    </property>
+
+    <property>
+        <name>fs.trash.interval</name>
+        <value>1440</value>
+    </property>
+    <property>
+        <name>fs.trash.checkpoint.interval</name>
+        <value>60</value>
+    </property>
+    <property>
+        <name>ha.zookeeper.session-timeout.ms</name>
+        <value>90000</value>
+    </property>
+
+</configuration>

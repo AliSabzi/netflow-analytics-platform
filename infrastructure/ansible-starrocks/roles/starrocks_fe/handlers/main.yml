@@ -1,0 +1,11 @@
+---
+- name: reload systemd
+  systemd:
+    daemon_reload: true
+  become: true
+
+- name: restart fe
+  systemd:
+    name: starrocks-fe
+    state: restarted
+  become: true

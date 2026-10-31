@@ -1,0 +1,62 @@
+{{- $name := .Values.fullnameOverride | default .Chart.Name -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $name }}
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: {{ $name }}
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: behavioral-clustering
+              image: "{{ .Values.global.registry }}/{{ .Values.image.repository }}:{{ .Values.global.imageTag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              args:
+                - {{ .Values.hdfs.inputPath | quote }}
+              env:
+                - name: JAVA_TOOL_OPTIONS
+                  value: "-Dspark.jars=/app/libs/postgresql-42.7.3.jar --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED"
+                - name: SPARK_DRIVER_HOST
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: status.podIP
+                - name: SPARK_MASTER
+                  value: {{ .Values.spark.master | quote }}
+                - name: SPARK_EXECUTOR_CORES
+                  value: {{ .Values.spark.executorCores | quote }}
+                - name: SPARK_EXECUTOR_MEMORY
+                  value: {{ .Values.spark.executorMemory | quote }}
+                - name: POSTGRES_URL
+                  value: {{ .Values.postgresql.url | quote }}
+                - name: POSTGRES_USERNAME
+                  value: {{ .Values.postgresql.username | quote }}
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.postgresql.existingSecret }}
+                      key: postgres-password
+              volumeMounts:
+                - name: hadoop-config
+                  mountPath: /app/resources/core-site.xml
+                  subPath: core-site.xml
+                  readOnly: true
+                - name: hadoop-config
+                  mountPath: /app/resources/hdfs-site.xml
+                  subPath: hdfs-site.xml
+                  readOnly: true
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+          volumes:
+            - name: hadoop-config
+              configMap:
+                name: hadoop-config

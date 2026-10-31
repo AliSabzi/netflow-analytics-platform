@@ -1,0 +1,95 @@
+---
+- name: Ensure controller directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+    mode: "0750"
+  loop:
+    - "{{ kafka_controller_config_dir }}"
+    - "{{ kafka_controller_metadata_dir }}"
+    - "{{ kafka_controller_log_dir }}"
+
+- name: Configure Kafka controller
+  ansible.builtin.template:
+    src: server.properties.j2
+    dest: "{{ kafka_controller_config_file }}"
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+    mode: "0640"
+  notify: Restart Kafka controller
+
+- name: Configure controller JMX Exporter
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/files/kafka-jmx-exporter.yml"
+    dest: "{{ kafka_controller_jmx_exporter_config_file }}"
+    owner: "{{ kafka_user }}"
+    group: "{{ kafka_group }}"
+    mode: "0640"
+  notify: Restart Kafka controller
+
+- name: Check controller metadata
+  ansible.builtin.stat:
+    path: "{{ kafka_controller_metadata_dir }}/meta.properties"
+  register: kafka_controller_meta
+
+- name: Read existing controller metadata
+  ansible.builtin.slurp:
+    path: "{{ kafka_controller_metadata_dir }}/meta.properties"
+  register: kafka_controller_meta_content
+  when: kafka_controller_meta.stat.exists
+
+- name: Validate existing controller metadata
+  ansible.builtin.assert:
+    that:
+      - "('cluster.id=' ~ kafka_cluster_id) in (kafka_controller_meta_content.content | b64decode).splitlines()"
+      - "('node.id=' ~ kafka_controller_node_id) in (kafka_controller_meta_content.content | b64decode).splitlines()"
+      - "('directory.id=' ~ kafka_controller_directory_id) in (kafka_controller_meta_content.content | b64decode).splitlines()"
+    fail_msg: "Existing controller metadata does not match cluster.id, node.id or directory.id"
+  when: kafka_controller_meta.stat.exists
+
+- name: Format controller storage
+  ansible.builtin.command: >-
+    {{ kafka_home }}/bin/kafka-storage.sh format
+    --cluster-id {{ kafka_cluster_id }}
+    --initial-controllers "{{ kafka_controller_initial_controllers }}"
+    --config {{ kafka_controller_config_file }}
+  become_user: "{{ kafka_user }}"
+  environment:
+    JAVA_HOME: "{{ java_home }}"
+  when: not kafka_controller_meta.stat.exists
+
+- name: Install Kafka controller service
+  ansible.builtin.template:
+    src: kafka-controller.service.j2
+    dest: "/etc/systemd/system/{{ kafka_controller_service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Kafka controller
+
+- name: Apply controller configuration changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure Kafka controller is running
+  ansible.builtin.systemd:
+    name: "{{ kafka_controller_service_name }}"
+    state: started
+    enabled: true
+
+- name: Wait for controller listener
+  ansible.builtin.wait_for:
+    host: "{{ kafka_node_address }}"
+    port: "{{ kafka_controller_port }}"
+    timeout: 120
+
+- name: Verify controller metrics endpoint
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ kafka_controller_jmx_exporter_port }}/metrics"
+    status_code: 200
+    use_proxy: false
+  register: kafka_controller_metrics
+  until: kafka_controller_metrics.status == 200
+  retries: 12
+  delay: 5

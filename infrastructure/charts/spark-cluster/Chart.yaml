@@ -1,0 +1,6 @@
+apiVersion: v2
+name: spark-cluster
+description: Spark standalone cluster
+type: application
+version: 0.1.0
+appVersion: "4.1.1"

@@ -1,0 +1,19 @@
+---
+kafka_controller_listener_address: "0.0.0.0"
+kafka_controller_service_name: "kafka-controller"
+kafka_controller_heap_opts: "-Xms1G -Xmx1G"
+kafka_controller_config_dir: "/etc/kafka-controller"
+kafka_controller_config_file: "{{ kafka_controller_config_dir }}/server.properties"
+kafka_controller_jmx_exporter_port: 7072
+kafka_controller_jmx_exporter_config_file: "{{ kafka_controller_config_dir }}/jmx-exporter.yml"
+kafka_controller_metadata_dir: "{{ kafka_storage_root }}/kafka-controller-metadata"
+kafka_controller_log_dir: "{{ kafka_storage_root }}/kafka-controller-logs"
+kafka_controller_node_id: "{{ (kafka_node_id | int) + kafka_controller_node_id_offset }}"
+kafka_controller_initial_controllers: >-
+  {%- set controllers = [] -%}
+  {%- for host in groups['kafka_controllers'] -%}
+  {%- set controller_id = (hostvars[host].kafka_node_id | int) + kafka_controller_node_id_offset -%}
+  {%- set controller = controller_id ~ '@' ~ (hostvars[host].ansible_host | default(host)) ~ ':' ~ kafka_controller_port ~ ':' ~ hostvars[host].kafka_controller_directory_id -%}
+  {%- set _ = controllers.append(controller) -%}
+  {%- endfor -%}
+  {{ controllers | join(',') }}

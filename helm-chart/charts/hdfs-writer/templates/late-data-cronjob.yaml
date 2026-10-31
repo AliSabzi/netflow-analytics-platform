@@ -1,0 +1,42 @@
+{{- if .Values.lateDataJob.enabled }}
+{{- $registry := required "global.registry must be set" .Values.global.registry -}}
+{{- $repository := required "image.repository must be set" .Values.image.repository -}}
+{{- $tag := required "global.imageTag must be set" .Values.global.imageTag -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "hdfs-writer.fullname" . }}-late-data
+spec:
+  schedule: {{ .Values.lateDataJob.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.lateDataJob.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.lateDataJob.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            app: {{ include "hdfs-writer.fullname" . }}-late-data
+          annotations:
+            checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        spec:
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          hostAliases:
+            {{- toYaml .Values.hdfs.hostAliases | nindent 12 }}
+          containers:
+            - name: late-data
+              image: {{ printf "%s/%s:%s" $registry $repository $tag | quote }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["java"]
+              args:
+                - "-cp"
+                - "/app/resources:/app/classes:/app/libs/*"
+                - "com.novindata.netflow.LateDataApplication"
+              envFrom:
+                - configMapRef:
+                    name: {{ include "hdfs-writer.fullname" . }}-config
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+{{- end }}

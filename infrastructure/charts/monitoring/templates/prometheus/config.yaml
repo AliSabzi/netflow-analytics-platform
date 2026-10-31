@@ -1,0 +1,159 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 10s
+      evaluation_interval: 10s
+    rule_files:
+      - /etc/prometheus/alerts.yml
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets: [localhost:9090]
+      - job_name: netflow-pods
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+              {{- range .Values.applicationNamespaces }}
+                - {{ . }}
+              {{- end }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: hdfs-writer|starrocks-writer|rest-api
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            regex: 9400|9402|9403
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: job
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+      - job_name: spark-pushgateway
+        honor_labels: true
+        static_configs:
+          - targets: [spark-pushgateway:9091]
+      - job_name: spark-master
+        metrics_path: /metrics/master/prometheus/
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+              {{- range .Values.applicationNamespaces }}
+                - {{ . }}
+              {{- end }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: spark-master
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            regex: "8080"
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+      - job_name: spark-worker
+        metrics_path: /metrics/prometheus/
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+              {{- range .Values.applicationNamespaces }}
+                - {{ . }}
+              {{- end }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: spark-worker
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            regex: "8081"
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+      - job_name: kube-state-metrics
+        static_configs:
+          - targets: [kube-state-metrics:8080]
+      - job_name: kubernetes-cadvisor
+        scheme: https
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: __metrics_path__
+            regex: (.+)
+            replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+      - job_name: node-exporter
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [{{ .Release.Namespace }}]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: node-exporter
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            regex: "9100"
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+      - job_name: kafka-exporter
+        static_configs:
+          - targets: [kafka-exporter:9308]
+      - job_name: kafka-broker
+        static_configs:
+          - targets:
+            {{- range .Values.kafka.metricsTargets }}
+              - {{ . }}
+            {{- end }}
+      - job_name: kafka-controller
+        static_configs:
+          - targets:
+            {{- range .Values.kafka.controllerMetricsTargets }}
+              - {{ . }}
+            {{- end }}
+      - job_name: hdfs-namenode
+        metrics_path: {{ .Values.hdfs.metricsPath }}
+        static_configs:
+          - targets:
+            {{- range .Values.hdfs.nameNodeTargets }}
+              - {{ . }}
+            {{- end }}
+      - job_name: hdfs-datanode
+        metrics_path: {{ .Values.hdfs.metricsPath }}
+        static_configs:
+          - targets:
+            {{- range .Values.hdfs.dataNodeTargets }}
+              - {{ . }}
+            {{- end }}
+      - job_name: rest-api-probe
+        metrics_path: /probe
+        params:
+          module: [http_2xx]
+        static_configs:
+          - targets: [{{ required "blackbox.restApiPublicUrl must be the public REST API health URL" .Values.blackbox.restApiPublicUrl | quote }}]
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: blackbox-exporter:9115
+  alerts.yml: |
+{{ .Files.Get "alerts.yml" | indent 4 }}
